@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Tori</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+  <link href="../public/css/styles.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
+
+</head>
+<body class="bg-secondary-bg">
+
+  <!-- Sidebar -->
+  <div class="flex min-h-screen">
+    <aside class="bg-gradient-to-r from-primary text-white w-full md:w-64 p-6">
+      <h2 class="text-2xl font-bold mb-6 text-black">Tori Dashboard</h2>
+      <nav class="space-y-4">
+        <a href="#" id="schema-upload-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Manage Schemas</a>
+        <a href="#" id="ai-query-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Generate Queries</a>
+        <a href="#" id="query-history-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Query History</a>
+        <a href="#" id="favorites-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Favorites</a>
+        <a href="#" id="settings-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Settings</a>
+      </nav>
+      <button id="logout-button" class="btn-primary mt-8 w-full">Logout</button>
+    </aside>
+
+  <div id="loader" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex flex-col items-center justify-center z-50 space-y-4">
+      <img src="https://img.icons8.com/?size=100&id=tSM62HL5NSC8&format=png&color=000000" alt="Loading..." class="w-32 h-32 object-contain" />
+      <p class="text-white text-lg font-medium animate-pulse">Processing your request...</p>
+  </div>
+    <!-- Main Content -->
+    <main class="flex-1 p-8">
+      <section id="welcome-section" class="mb-8">
+        <h1 id="welcome-message" class="text-4xl font-extrabold text-primary"></h1>
+      </section>
+  
+    
+      <!-- Schema Upload Section -->
+      <section id="schema-upload-section">
+        <h2 class="text-2xl font-bold text-primary mb-4">Upload or Define Schema</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+
+          <nav class="border-b border-gray-200">
+            <input type="text" id="schema-name" class="form-input mt-2" placeholder="Schema Name" required />
+            <p id="autosuggest-info" class="text-sm text-gray-500 mt-2">
+              Include a name for your schemas so they are accessible. You can upload or manually fill columns using the tab
+            </p>
+            <br>
+            <div class="flex space-x-4" role="tablist">
+              <button id="upload-tab" class="inline-block px-4 py-2 font-medium text-sm text-primary border-b-2 border-primary active" role="tab" aria-controls="upload-schema" aria-selected="true">Upload File</button>
+              <button id="manual-tab" class="inline-block px-4 py-2 font-medium text-sm text-gray-500 hover:text-primary border-b-2 border-transparent hover:border-primary" role="tab" aria-controls="manual-schema" aria-selected="false">Define Columns</button>
+            </div>
+          </nav>
+          <div id="upload-schema" class="block mt-6">
+            <form id="schema-upload-form">
+
+              <label class="block text-sm font-medium text-gray-700">Upload Schema (.CSV or .SQL)</label>
+              <input type="file" id="schema-file" class="form-input mt-2" accept=".sql, .csv" required />
+              <button type="button" id="upload-button" class="btn-primary mt-4">Upload</button>
+            </form>
+          </div>
+          <div id="manual-schema" class="hidden mt-6">
+            <form id="manual-schema-form">
+              <div id="columns-container" class="space-y-4">
+
+                <div class="flex items-center space-x-4">
+                  <input type="text" class="form-input" placeholder="Column Name" required />
+                  <input type="text" class="form-input" placeholder="Data Type" required />
+                  <input type="text" class="form-input" placeholder="Description (Optional)" />
+                  <button type="button" class="btn-primary remove-column">Remove</button>
+                </div>
+              </div>
+              <button type="button" id="add-column" class="btn-accent mt-4">Add Column</button>
+              <button type="button" id="save-schema" class="btn-primary mt-4">Save Schema</button>
+            </form>
+          </div>
+          <div class="mt-4 flex justify-between items-center">
+            <button id="prev-page" class="btn-secondary disabled:opacity-50 hidden">Previous</button>
+            <button id="next-page" class="btn-secondary disabled:opacity-50 hidden">Next</button>
+          </div>
+          
+        </div>
+        <div id="schema-metadata" class="mt-6 hidden">
+          <h3 class="text-lg font-bold text-primary">Schema Metadata</h3>
+          <p class="mt-2 text-sm text-text-secondary" id="schema-details"></p>
+        </div>
+        <div id="empty-state" class="mt-6 text-center hidden">
+          <p class="text-gray-500">No schemas uploaded or defined yet. Start by uploading or creating one.</p>
+        </div>
+      </section>
+
+      <!-- AI Query Generator Section -->
+      <section id="query-schemas-section" class="hidden">
+        <h2 class="text-2xl font-bold text-primary mb-4">AI Query Generator</h2>
+        <div id="error-message" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-4">
+          <p class="text-center font-semibold">No schemas available.</p>
+          <p class="text-center mt-2">Please <span class="font-bold">upload</span> or <span class="font-bold">define</span> a schema to start generating queries.</p>
+          <div class="text-center mt-4">
+            <button id="go-to-upload" class="btn-primary">Upload/Define Schema</button>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <select id="schema-selector" class="w-full mb-4 p-2 border rounded">
+            <option value="" disabled selected>Select a Schema</option>
+          </select>
+          
+          <textarea id="query-input" class="w-full p-4 border rounded-md min-h-[150px] resize-y" placeholder="Write your query in plain language..."></textarea>
+
+          
+          <p id="autosuggest-info" class="text-sm text-gray-500 mt-2">
+            Start typing your query. Autosuggestions for columns and tables will appear.
+          </p>
+        
+          <div id="ai-generated-sql" class="mt-4 hidden">
+            <h3 class="text-lg font-bold text-primary">Generated SQL:</h3>
+            <p id="generated-sql-text" class="mt-2 text-sm bg-gray-100 p-2 rounded"></p>
+            <div class="flex space-x-4 mt-4">
+              <button id="copy-to-clipboard" class="btn-secondary">Copy to Clipboard</button>
+              <button id="save-favorite" class="btn-primary">Save as Favorite</button>
+              <button id="validate-query" class="btn-accent">Validate Query</button>
+            </div>
+          </div>
+          
+          <button id="generate-query" class="btn-primary mt-4">Generate Query</button>
+          
+          <div id="query-limit-message" class="hidden mt-4 text-red-600 text-center">
+            <p>You have used all your trial queries. Please upgrade to Pro to continue.</p>
+            <button id="upgrade-button" class="btn-primary mt-2">Upgrade Now</button>
+          </div>
+        </div>
+        
+      </section>
+
+    
+      
+
+<div class="overflow-x-auto">
+        <!-- Query History Section -->
+<section id="query-history-section" class="hidden">
+  <h2 class="text-2xl font-bold text-primary mb-4">Query History</h2>
+  <input id="query-history-search" type="text" class="form-input mb-4 w-full" placeholder="Search queries by keyword or schema" />
+  <table class="min-w-full table-auto bg-white rounded-lg shadow overflow-hidden">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="py-3 px-4 text-left text-sm font-medium text-gray-600">Timestamp</th>
+        <th class="py-3 px-4 text-left text-sm font-medium text-gray-600">Query Prompt</th>
+        <th class="py-3 px-4 text-left text-sm font-medium text-gray-600">Generated Query</th>
+        <th class="py-3 px-4 text-left text-sm font-medium text-gray-600">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="query-history-table"></tbody>
+  </table>
+  
+</section>
+
+<section id="favorites-section" class="hidden">
+  <h2 class="text-2xl font-bold text-primary mb-4">Favorite Queries</h2>
+  <table class="min-w-full table-auto bg-white rounded-lg shadow overflow-hidden">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="py-3 px-4 text-left text-sm font-medium text-gray-600">Name</th>
+        <th class="py-3 px-4 text-left text-sm font-medium text-gray-600">Query</th>
+        <th class="py-3 px-4 text-left text-sm font-medium text-gray-600">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="favorites-table"></tbody>
+  </table>
+  
+</section>
+</div>
+
+<section id="settings-section" class="hidden">
+  <h2 class="text-2xl font-bold text-primary mb-4">Account Settings</h2>
+  <!-- Add this in the Settings Section -->
+<div id="subscription-section" class="mt-6 p-6 bg-white rounded-lg shadow-md">
+  <h2 class="text-lg font-bold text-primary mb-4">Subscription</h2>
+  <p id="subscription-info" class="text-sm text-gray-700">Fetching your subscription details...</p>
+  <div id="upgrade-options" class="hidden mt-4">
+    <p class="text-sm text-gray-700 mb-4">You are currently on the trial plan. Upgrade to the Pro plan for $12/month or contact us for Enterprise solutions.</p>
+    <button id="upgrade-button" class="btn-primary">Upgrade to Pro</button>
+    <button id="enterprise-contact-button" class="btn-accent mt-2">Contact for Enterprise</button>
+  </div>
+</div>
+
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-bold">Profile</h3>
+    <form id="update-profile-form">
+      <div class="mb-4">
+        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+        <input type="text" id="username" class="form-input mt-2 w-full" />
+      </div>
+      <div class="mb-4">
+        <label for="company-name" class="block text-sm font-medium text-gray-700">Company Name</label>
+        <input type="text" id="company-name" class="form-input mt-2 w-full" />
+      </div>
+      <button type="submit" class="btn-primary">Update Profile</button>
+    </form>
+    <form id="change-password-form" class="mt-8">
+      <div class="mb-4">
+        <label for="current-password" class="block text-sm font-medium text-gray-700">Current Password</label>
+        <input type="password" id="current-password" class="form-input mt-2 w-full" />
+      </div>
+      <div class="mb-4">
+        <label for="new-password" class="block text-sm font-medium text-gray-700">New Password</label>
+        <input type="password" id="new-password" class="form-input mt-2 w-full" />
+      </div>
+      <button type="submit" class="btn-primary">Change Password</button>
+    </form>
+    <button id="delete-account-button" class="btn-danger mt-8">Delete Account</button>
+  </div>
+</section>
+
+<!-- Database Configuration Modal -->
+<div id="db-config-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">
+  <div class="bg-white p-6 rounded shadow-md w-1/3">
+    <h2 class="text-xl font-bold mb-4">Database Configuration</h2>
+    <form id="db-config-form">
+      <div class="mb-4">
+        <label for="db-host" class="block text-sm font-medium text-gray-700">Host</label>
+        <input type="text" id="db-host" class="form-input mt-2 w-full" required />
+      </div>
+      <div class="mb-4">
+        <label for="db-port" class="block text-sm font-medium text-gray-700">Port</label>
+        <input type="number" id="db-port" class="form-input mt-2 w-full" required />
+      </div>
+      <div class="mb-4">
+        <label for="db-user" class="block text-sm font-medium text-gray-700">User</label>
+        <input type="text" id="db-user" class="form-input mt-2 w-full" required />
+      </div>
+      <div class="mb-4">
+        <label for="db-password" class="block text-sm font-medium text-gray-700">Password</label>
+        <input type="password" id="db-password" class="form-input mt-2 w-full" required />
+      </div>
+      <div class="mb-4">
+        <label for="db-name" class="block text-sm font-medium text-gray-700">Database Name</label>
+        <input type="text" id="db-name" class="form-input mt-2 w-full" required />
+      </div>
+      <button type="submit" class="btn-primary w-full">Save</button>
+    </form>
+    <button id="close-db-config" class="btn-secondary mt-4 w-full">Cancel</button>
+  </div>
+</div>
+
+      
+    </main>
+  </div>
+
+  <script src="../scripts/dashboard.js"></script>
+</body>
+</html>

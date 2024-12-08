@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tori - Transform Your SQL Workflow</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="scripts/demo.js"></script>
+  <style>
+    :root {
+      --primary: #4B0082;
+      --accent: #FFD700;
+      --background: #F9F6F1;
+      --secondary-bg: #F2F4F8;
+      --text-color: #333333;
+      --text-secondary: #666666;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text-color);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+
+    .btn-primary:hover {
+      background-color: #5a189a;
+      transform: scale(1.05);
+    }
+
+    .btn-accent {
+      background-color: var(--accent);
+      color: #333333;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+
+    .btn-accent:hover {
+      background-color: #ffc107;
+      transform: scale(1.05);
+    }
+
+    .hover-rise {
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .hover-rise:hover {
+      transform: translateY(-10px);
+    }
+
+    #demo-section {
+  padding: 2rem 1rem;
+}
+
+#demo-section h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+#demo-section p {
+  text-align: center;
+  margin-bottom: 2rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#demo-section .grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive layout */
+  justify-content: center; /* Center horizontally */
+  align-items: start; /* Align items vertically */
+  max-width: 800px; /* Constrain grid width */
+  margin: 0 auto; /* Center the grid in the container */
+}
+
+#demo-section .grid div {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Textarea and Button Styling */
+textarea#demo-query-input {
+  resize: none;
+  width: 100%;
+  border: 1px solid var(--secondary-bg);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+
+button#demo-run-btn {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button#demo-run-btn:hover {
+  background: #5a189a;
+}
+
+pre {
+  background-color: var(--secondary-bg);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto; /* Enable horizontal scrolling */
+  word-wrap: break-word; /* Break long lines */
+  max-width: 100%; /* Prevent overflow */
+  font-size: 0.875rem; /* Adjust font size for better readability */
+}
+
+
+/* Responsive Design Tweaks */
+@media (max-width: 768px) {
+  pre {
+    font-size: 0.75rem; /* Smaller font size on mobile */
+    word-break: break-word; /* Break long words */
+  }
+
+  #demo-section {
+    padding: 2rem 1rem;
+  }
+
+  #demo-section .grid {
+    grid-template-columns: 1fr;
+  }
+
+  #demo-section p {
+    margin-bottom: 1rem;
+  }
+  #demo-section textarea#demo-query-input,
+  #demo-section button#demo-run-btn {
+    margin-bottom: 1rem;
+  }
+}
+
+
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-primary to-gray-800 text-black py-6">
+    <nav class="container mx-auto px-6 flex justify-between items-center flex-wrap">
+      <h1 class="text-3xl font-extrabold">Tori</h1>
+      <div class="flex flex-wrap items-center space-x-6 mt-4 sm:mt-0">
+        <a href="#how-it-works" class="text-sm font-medium hover:underline">How It Works</a>
+        <a href="#pricing" class="text-sm font-medium hover:underline">Pricing</a>
+        <a href="#demo-section" class="text-sm font-medium hover:underline">Try the demo</a>
+
+        <a href="auth/login.html" class="btn-accent px-4 py-2 rounded-lg shadow-md">Login</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="text-center py-28 bg-gradient-to-b from-primary via-secondary-bg to-background text-gray-100">
+      <div class="container mx-auto px-6">
+        <h1 class="text-5xl lg:text-6xl font-extrabold leading-tight text-black">
+          Simplify SQL for Your Entire Team
+        </h1>
+        <p class="mt-6 text-lg lg:text-xl max-w-3xl mx-auto text-black leading-relaxed">
+          Save hours with AI-powered SQL generation. Type queries in plain English and let Tori do the rest.
+        </p>
+        <div class="mt-12">
+          <a href="auth/signup.html" class="btn-accent px-10 py-4 rounded-lg shadow-lg text-lg">
+            Start Your Free Trial
+          </a>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="demo-section" class="py-16 bg-white">
+      <div class="container mx-auto max-w-screen-lg">
+        <h2 class="text-4xl font-extrabold text-primary text-center">Try Tori Now</h2>
+        <p class="mt-4 text-text-secondary">
+          Explore how Tori works with data from "House Lannister," a retail business operating from 2020 to 2024. Ask questions like sales trends, customer activity, or product popularity.
+        </p>
+        <div class="grid gap-8 mt-12">
+          <!-- Live Demo Section -->
+          <div>
+            <h3 class="text-lg font-bold text-primary mb-4 text-center">Live Demo</h3>
+            <div class="mb-4">
+              <label for="demo-query-input" class="block text-sm font-bold text-primary">Enter Your Query</label>
+              <textarea 
+                id="demo-query-input" 
+                class="border rounded-lg p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary mt-2" 
+                placeholder="E.g., list users who spent less than $50, list users with no orders"
+              ></textarea>
+            </div>
+            <button id="demo-run-btn" class="btn-primary">Run Query</button>
+            <div class="mt-6">
+              <h4 class="text-md font-bold text-primary mb-2">Generated SQL Query</h4>
+              <pre id="demo-generated-sql">-- Your SQL query will appear here</pre>
+            </div>
+            <div class="mt-4">
+              <h4 class="text-md font-bold text-primary mb-2">Result</h4>
+              <pre id="demo-query-result">-- Query result will appear here</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    
+    
+    <!-- How It Works -->
+    <section id="how-it-works" class="py-16 bg-white">
+      <div class="container mx-auto text-center">
+        <h2 class="text-4xl font-extrabold text-primary">How It Works</h2>
+        <p class="mt-4 max-w-xl mx-auto text-text-secondary">Get started in three simple steps:</p>
+        <div class="grid md:grid-cols-3 gap-8 mt-12">
+          <div class="p-6 bg-secondary-bg rounded-lg shadow-md hover:shadow-lg hover:bg-gray-200 hover-rise">
+            <img src="https://img.icons8.com/doodle/96/stack.png" alt="Upload Schema" class="w-16 mx-auto">
+            <h3 class="text-lg font-bold mt-6">Upload Your Schema</h3>
+            <p class="mt-4 text-sm text-text-secondary">Import your database schemas or define tables manually in seconds with SQL or CSV.</p>
+          </div>
+          <div class="p-6 bg-secondary-bg rounded-lg shadow-md hover:shadow-lg hover:bg-gray-200 hover-rise">
+            <img src="https://img.icons8.com/doodle/96/statistics.png" alt="Describe Query" class="w-16 mx-auto">
+            <h3 class="text-lg font-bold mt-6">Describe Your Query</h3>
+            <p class="mt-4 text-sm text-text-secondary">Type your questions in plain English, and let Tori handle the rest.</p>
+          </div>
+          <div class="p-6 bg-secondary-bg rounded-lg shadow-md hover:shadow-lg hover:bg-gray-200 hover-rise">
+            <img src="https://img.icons8.com/doodle/96/checkmark.png" alt="Generate SQL" class="w-16 mx-auto">
+            <h3 class="text-lg font-bold mt-6">Get SQL Instantly</h3>
+            <p class="mt-4 text-sm text-text-secondary">Tori converts your input into optimized SQL, ready for execution. Compatible with MySQL, PostgreSQL, SQLite, and more.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-16 bg-white">
+      <div class="container mx-auto text-center">
+        <h2 class="text-4xl font-extrabold text-primary">Pricing</h2>
+        <p class="mt-4 max-w-xl mx-auto text-text-secondary">Find the perfect plan for your needs:</p>
+        <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+          <div class="p-6 bg-secondary-bg rounded-lg shadow-md hover:shadow-lg hover:bg-gray-200 hover-rise">
+            <h3 class="text-lg font-bold">Free Trial</h3>
+            <p class="mt-4 text-sm text-text-secondary">Basic features for personal projects. 3 generated queries</p>
+            <p class="mt-6 text-xl font-bold">$0/month</p>
+          </div>
+          <div class="p-6 bg-secondary-bg rounded-lg shadow-md hover:shadow-lg hover:bg-gray-200 hover-rise">
+            <h3 class="text-lg font-bold">Pro</h3>
+            <p class="mt-4 text-sm text-text-secondary">Unlimited queries and advanced features.</p>
+            <p class="mt-6 text-xl font-bold">$12/month</p>
+          </div>
+          <div class="p-6 bg-secondary-bg rounded-lg shadow-md hover:shadow-lg hover:bg-gray-200 hover-rise">
+            <h3 class="text-lg font-bold">Enterprise</h3>
+            <p class="mt-4 text-sm text-text-secondary">Custom solutions for teams and organizations.</p>
+            <p class="mt-6 text-xl font-bold">Custom Pricing</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-16 bg-gradient-to-r from-primary to-accent text-black text-center">
+      <h2 class="text-4xl font-bold">Simplify Your SQL Workflow</h2>
+      <p class="mt-4 text-lg">
+        Join thousands of professionals who trust Tori for SQL generation. Sign up today!
+      </p>
+      <a href="auth/signup.html" class="btn-accent mt-6 inline-block px-8 py-4 rounded-lg shadow-md text-lg">
+        Get Started Free
+      </a>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-primary text-black py-8">
+    <div class="container mx-auto text-center">
+      <p class="text-sm">&copy; 2024 Tori. Empowering teams to work smarter with SQL.</p>
+    </div>
+  </footer>
+</body>
+</html>
