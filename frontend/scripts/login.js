@@ -19,6 +19,7 @@ const hideLoader = () => {
 
     if (!email || !password) {
       alert("Please fill in both email and password fields.");
+      hideLoader()
       return;
     }
 
