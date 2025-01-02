@@ -11,9 +11,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoutButton = document.getElementById("logout-button");
   const schemaUploadNav = document.getElementById("schema-upload-nav");
   const aiQueryNav = document.getElementById("ai-query-nav");
+
+  const runQueryNav = document.getElementById("ai-run-query-nav");
+
   const queryHistoryNav = document.getElementById("query-history-nav");
   const favoritesNav = document.getElementById("favorites-nav");
   const settingsNav = document.getElementById("settings-nav");
+
+  const runQuerySection = document.getElementById("run-query-section");
+
+
   const schemaUploadSection = document.getElementById("schema-upload-section");
   const querySchemasSection = document.getElementById("query-schemas-section");
   const queryHistorySection = document.getElementById("query-history-section");
@@ -58,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   const resetSections = () => {
-    [schemaUploadSection, querySchemasSection, queryHistorySection, favoritesSection, settingsSection].forEach((section) =>
+    [schemaUploadSection, querySchemasSection, queryHistorySection, favoritesSection, settingsSection, runQuerySection].forEach((section) =>
       section.classList.add("hidden")
     );
     errorMessage.classList.add("hidden");
@@ -320,6 +327,8 @@ generateQueryButton.addEventListener("click", async () => {
   
 
   queryHistoryNav.addEventListener("click", async () => {
+    console.log('pionttt');
+    
     const schemaId = schemaSelector.value;
     if (!schemaId) {
       alert("Please select a schema in the generate query section to view its query history.");
@@ -330,6 +339,102 @@ generateQueryButton.addEventListener("click", async () => {
     queryHistorySection.classList.remove("hidden");
     switchActiveTab(queryHistoryNav);
   });
+
+  runQueryNav.addEventListener("click", async () => {
+    console.log('come to me')
+    
+  
+    if (!runQuerySection) {
+      console.error("Run Query section is missing in the HTML.");
+      return;
+    }
+    resetSections(); // Hide all other sections
+    
+    runQuerySection.classList.remove("hidden"); // Show the Run Query section
+    switchActiveTab(runQueryNav); // Highlight the active tab
+  });
+
+  document.getElementById("execute-query")?.addEventListener("click", async () => {
+    const schemaId = document.getElementById("run-query-schema-selector").value;
+    const query = document.getElementById("run-query-input").value.trim();
+  
+    if (!schemaId || !query) {
+      alert("Please select a schema and provide a query.");
+      return;
+    }
+  
+    try {
+      showLoader();
+  
+      // todo: connect this route
+      const response = await fetch(`http://localhost:3000/api/schemas/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ query }),
+      });
+  
+      const result = await response.json();
+      hideLoader();
+  
+      if (response.ok) {
+        renderQueryResults(result.data);
+      } else {
+        alert(result.message || "Failed to execute query.");
+      }
+    } catch (error) {
+      hideLoader();
+      console.error("Error executing query:", error);
+      alert("Error executing query. Please try again later.");
+    }
+  });
+  
+  const renderQueryResults = (data) => {
+    const resultsHeaderRow = document.getElementById("results-header-row");
+    const resultsBody = document.getElementById("results-body");
+    resultsHeaderRow.innerHTML = "";
+    resultsBody.innerHTML = "";
+  
+    if (!data || data.length === 0) {
+      alert("No results found.");
+      return;
+    }
+  
+    // Generate header row
+    const headers = Object.keys(data[0]);
+    headers.forEach((header) => {
+      const th = document.createElement("th");
+      th.className = "py-3 px-4 text-left text-sm font-medium text-gray-600";
+      th.textContent = header;
+      resultsHeaderRow.appendChild(th);
+    });
+  
+    // Generate rows
+    data.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.className = "border-b hover:bg-gray-50";
+  
+      headers.forEach((header) => {
+        const td = document.createElement("td");
+        td.className = "py-3 px-4 text-sm text-gray-700";
+        td.textContent = row[header];
+        tr.appendChild(td);
+      });
+  
+      resultsBody.appendChild(tr);
+    });
+  
+    document.getElementById("query-results").classList.remove("hidden");
+  };
+  
+  document.getElementById("clear-query").addEventListener("click", () => {
+    document.getElementById("run-query-input").value = "";
+    document.getElementById("query-results").classList.add("hidden");
+  });
+  
+  
 
   favoritesNav.addEventListener("click", async () => {
     const schemaId = schemaSelector.value;

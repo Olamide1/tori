@@ -21,6 +21,7 @@
       <nav class="space-y-4">
         <a href="#" id="schema-upload-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Manage Schemas</a>
         <a href="#" id="ai-query-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Generate Queries</a>
+        <a href="#" id="ai-run-query-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Run Queries (New)</a>
         <a href="#" id="query-history-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Query History</a>
         <a href="#" id="favorites-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Favorites</a>
         <a href="#" id="settings-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Settings</a>
@@ -173,19 +174,87 @@
 </section>
 </div>
 
+<section id="run-query-section" class=""><!-- todo: hidden -->
+  <h2 class="text-2xl font-bold text-primary mb-4">Run Queries (New)</h2>
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <div class="mb-4">
+      <label for="database-dropdown" class="block text-sm font-medium text-gray-700">Select Database</label>
+      <select id="database-dropdown" class="form-input mt-2 w-full">
+        <option value="" disabled selected>Loading databases...</option>
+      </select>
+    </div>
+    
+
+    <textarea id="run-query-input" class="w-full p-4 border rounded-md min-h-[150px] resize-y" placeholder="Enter your SQL query..."></textarea>
+
+    <div class="mt-4">
+      <button id="execute-query" class="btn-primary">Execute Query</button>
+      <button id="clear-query" class="btn-secondary">Clear</button>
+    </div>
+
+    <div id="query-results" class="mt-6 hidden">
+      <h3 class="text-lg font-bold text-primary">Query Results:</h3>
+      <table class="min-w-full table-auto bg-white rounded-lg shadow overflow-hidden mt-4">
+        <thead class="bg-gray-100">
+          <tr id="results-header-row"></tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+  const databaseDropdown = document.getElementById("database-dropdown"); // Ensure the dropdown has this ID
+  const companyId = '6775817cdc04673f2ed0a36a' // "YOUR_COMPANY_ID"; // Replace with the actual company ID
+
+  const fetchDatabases = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/schemas/databases/${companyId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch databases.");
+      }
+
+      const databases = await response.json();
+
+      // Clear existing options
+      databaseDropdown.innerHTML = '<option value="" disabled selected>Select a Database</option>';
+
+      // Populate dropdown with database names
+      databases.forEach((db) => {
+        const option = document.createElement("option");
+        option.value = db._id; // Use database ID as the value
+        option.textContent = db.name; // Use database name as the label
+        databaseDropdown.appendChild(option);
+      });
+    } catch (error) {
+      console.error("Error fetching databases:", error);
+      alert("Failed to load databases. Please try again later.");
+    }
+  };
+
+  fetchDatabases();
+});
+
+  </script>
+</section>
+
+
 <section id="settings-section" class="hidden">
   <h2 class="text-2xl font-bold text-primary mb-4">Account Settings</h2>
-  <!-- Add this in the Settings Section -->
-<div id="subscription-section" class="mt-6 p-6 bg-white rounded-lg shadow-md">
-  <h2 class="text-lg font-bold text-primary mb-4">Subscription</h2>
-  <p id="subscription-info" class="text-sm text-gray-700">Fetching your subscription details...</p>
-  <div id="upgrade-options" class="hidden mt-4">
-    <p class="text-sm text-gray-700 mb-4">You are currently on the trial plan. Upgrade to the Pro plan for $12/month or contact us for Enterprise solutions.</p>
-    <button id="upgrade-button" class="btn-primary">Upgrade to Pro</button>
-    <button id="enterprise-contact-button" class="btn-accent mt-2">Contact for Enterprise</button>
+  
+  <!-- Subscription Section -->
+  <div id="subscription-section" class="mt-6 p-6 bg-white rounded-lg shadow-md">
+    <h2 class="text-lg font-bold text-primary mb-4">Subscription</h2>
+    <p id="subscription-info" class="text-sm text-gray-700">Fetching your subscription details...</p>
+    <div id="upgrade-options" class="hidden mt-4">
+      <p class="text-sm text-gray-700 mb-4">You are currently on the trial plan. Upgrade to the Pro plan for $12/month or contact us for Enterprise solutions.</p>
+      <button id="upgrade-button" class="btn-primary">Upgrade to Pro</button>
+      <button id="enterprise-contact-button" class="btn-accent mt-2">Contact for Enterprise</button>
+    </div>
   </div>
-</div>
 
+  <!-- Profile Section -->
   <div class="bg-white p-6 rounded-lg shadow-md">
     <h3 class="text-lg font-bold">Profile</h3>
     <form id="update-profile-form">
@@ -212,7 +281,125 @@
     </form>
     <button id="delete-account-button" class="btn-danger mt-8">Delete Account</button>
   </div>
+
+  <!-- Database Credentials Section -->
+  <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+    <h3 class="text-lg font-bold">Database Credentials</h3>
+    <form id="db-credentials-form">
+      <div class="mb-4">
+        <label for="db-type" class="block text-sm font-medium text-gray-700">Database Type</label>
+        <select id="db-type" class="form-input mt-2 w-full">
+          <option value="mysql">MySQL</option>
+          <option value="postgresql">PostgreSQL</option>
+          <option value="mongodb">MongoDB</option>
+        </select>
+      </div>
+      <div id="db-credentials-fields">
+        <div class="mb-4">
+          <label for="db-host" class="block text-sm font-medium text-gray-700">Host</label>
+          <input type="text" id="db-host" class="form-input mt-2 w-full" placeholder="e.g., localhost" />
+        </div>
+        <div class="mb-4">
+          <label for="db-port" class="block text-sm font-medium text-gray-700">Port</label>
+          <input type="number" id="db-port" class="form-input mt-2 w-full" placeholder="e.g., 3306 for MySQL" />
+        </div>
+        <div class="mb-4">
+          <label for="db-user" class="block text-sm font-medium text-gray-700">Username</label>
+          <input type="text" id="db-user" class="form-input mt-2 w-full" />
+        </div>
+        <div class="mb-4">
+          <label for="db-password" class="block text-sm font-medium text-gray-700">Password</label>
+          <input type="password" id="db-password" class="form-input mt-2 w-full" />
+        </div>
+        <div id="db-name-field" class="mb-4">
+          <label for="db-name" class="block text-sm font-medium text-gray-700">Database Name</label>
+          <input type="text" id="db-name" class="form-input mt-2 w-full" />
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Save Database Credentials</button>
+    </form>
+  </div>
 </section>
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("db-credentials-form");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    // Collect form data
+    const dbType = document.getElementById("db-type").value;
+    const dbHost = document.getElementById("db-host").value;
+    const dbPort = document.getElementById("db-port").value;
+    const dbUser = document.getElementById("db-user").value;
+    const dbPassword = document.getElementById("db-password").value;
+    const dbName = document.getElementById("db-name").value;
+    // const companyId = "YOUR_COMPANY_ID"; // TODO: Replace with the actual company ID
+
+    // Validate form data
+    if (!dbType || !dbHost || !dbPort || !dbUser || !dbPassword) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    // Prepare payload
+    const payload = {
+      name: `${dbType} Database`,
+      type: dbType,
+      host: dbHost,
+      port: parseInt(dbPort, 10),
+      username: dbUser,
+      password: dbPassword,
+      databaseName: dbType !== "mongodb" ? dbName : null, // Optional for MongoDB
+      // companyId, // TODO: will send
+    };
+
+    try {
+      // Send data to the backend
+      const response = await fetch("http://localhost:3000/api/schemas/save-db-credentials", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("Database credentials saved successfully!");
+        form.reset(); // Clear the form
+      } else {
+        alert(result.error || "Failed to save database credentials.");
+      }
+    } catch (error) {
+      console.error("Error saving database credentials:", error);
+      alert("An error occurred while saving the database credentials. Please try again.");
+    }
+  });
+});
+
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+  const dbTypeSelect = document.getElementById("db-type");
+  const dbNameField = document.getElementById("db-name-field");
+
+  dbTypeSelect.addEventListener("change", () => {
+    const dbType = dbTypeSelect.value;
+
+    if (dbType === "mongodb") {
+      dbNameField.classList.add("hidden"); // Hide Database Name for MongoDB
+    } else {
+      dbNameField.classList.remove("hidden"); // Show Database Name for others
+    }
+  });
+});
+
+</script>
 
 <!-- Database Configuration Modal -->
 <div id="db-config-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center">

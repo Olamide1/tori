@@ -8,6 +8,10 @@ const Subscriber = require("../models/Subscriber")
 const { verifyToken, validateQuerySafety } = require("../middlewares/authMiddleware");
 const { OpenAI } = require("openai");
 const { parse } = require("csv-parse/lib/sync");
+const { Pool } = require("pg"); // For PostgreSQL. Replace with mysql2 or other library if needed.
+
+const Database = require("../models/Database"); // Import the Database model
+const Company = require("../models/Company"); // Import the Company model
 
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -511,6 +515,168 @@ router.post("/:id/validate-query", verifyToken, validateQuerySafety, async (req,
   }
 });
 
+
+
+// Route to execute a query
+router.post("/query", async (req, res) => {
+  // todo: get db connection param from db
+  const { host, port, user, password, database, query } = req.body;
+
+  if (!host || !port || !user || !password || !database || !query) {
+    return res.status(400).json({ message: "All credentials and query are required." });
+  }
+
+  const pool = new Pool({
+    host,
+    port,
+    user,
+    password,
+    database,
+  });
+
+  try {
+    // Execute the query
+    const result = await pool.query(query);
+    return res.status(200).json({ message: "Query executed successfully.", data: result.rows });
+  } catch (error) {
+    console.error("Error executing query:", error.message);
+    return res.status(500).json({ message: "Query execution failed.", error: error.message });
+  } finally {
+    await pool.end(); // Ensure the pool is closed
+  }
+});
+
+
+// Route to save db // dummy route
+router.post("/save-db-credentials-dummy", async (req, res) => {
+  try {
+    // const owner = await User.create({ username: "owner1", email: "owner1@example.com", password: "securepass" });
+    // fetch the user
+
+    // const company = await Company.create({
+    //   name: "TechCorp",
+    //   description: "An innovative tech company",
+    //   owner: owner._id,
+    //   users: [owner._id],
+    // });
+    // also fetch the company of the user
+
+    const database = await Database.create({
+      name: "MainDB",
+      type: "mysql",
+      host: "localhost",
+      port: 3306,
+      username: "dbuser",
+      password: "dbpass",
+      databaseName: "techcorp_main",
+      // company: company._id, // ...
+    });
+
+    company.databases.push(database._id);
+    await company.save();
+
+    console.log("Company, Users, and Database created successfully!");
+  } catch (error) {
+    console.error(error);
+  } finally {
+    mongoose.connection.close();
+  }
+});
+
+
+/**
+ * @type {Object} {
+  "name": "MainDB",
+  "type": "mysql",
+  "host": "localhost",
+  "port": 3306,
+  "username": "dbuser",
+  "password": "dbpass",
+  "databaseName": "techcorp_main",
+  "companyId": "603d214f77abd2a2d2b5c18b"
+} req.body
+
+Should be used to update one db credential
+ */
+// Route to save db
+router.post("/save-db-credentials", async (req, res) => {
+  const { name, type, host, port, username, password, databaseName, companyId = '6775817cdc04673f2ed0a36a' } = req.body;
+
+  // Validate required fields
+  if (!name || !type || !host || !port || !username || !password || !companyId) {
+    return res.status(400).json({ error: "All required fields must be provided." });
+  }
+
+  try {
+    // Check if the company exists
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ error: "Company not found." });
+    }
+
+    // // Create (or update) a new database entry
+    // const newDatabase = new Database({
+    //   name,
+    //   type,
+    //   host,
+    //   port,
+    //   username,
+    //   password,
+    //   databaseName: type !== "mongodb" ? databaseName : null, // Database name required for SQL databases
+    //   company: companyId,
+    // });
+    // // Save the database credentials
+    // const savedDatabase = await newDatabase.save();
+    // // Link the database to the company - if it's new
+    // company.databases.push(savedDatabase._id);
+    // await company.save();
+    // res.status(201).json({
+    //   message: "Database credentials saved successfully.",
+    //   database: savedDatabase,
+    // });
+
+    const filter = { company: companyId, name };
+    const update = {
+      type,
+      host,
+      port,
+      username,
+      password,
+      databaseName: type !== "mongodb" ? databaseName : null,
+      updatedAt: Date.now(),
+    };
+    const options = { new: true, upsert: true }; // `upsert: true` creates a new document if none exists
+
+    // Find and update the database, or insert a new one if it doesn't exist
+    const updatedDatabase = await Database.findOneAndUpdate(filter, {...update, ...filter}, options);
+
+    res.status(200).json({
+      success: true,
+      message: "Database record updated successfully.",
+      database: updatedDatabase,
+    });
+
+  } catch (error) {
+    console.error("Error saving database credentials:", error);
+    res.status(500).json({ error: "An error occurred while saving database credentials." });
+  }
+});
+
+/**
+ * to fetch all the databases of a company and display in the frontend
+ * so they can choose and run queries from
+ */
+router.get("/databases/:companyId", async (req, res) => {
+  const { companyId } = req.params;
+
+  try {
+    const databases = await Database.find({ company: companyId });
+    res.status(200).json(databases);
+  } catch (error) {
+    console.error("Error fetching databases:", error);
+    res.status(500).json({ error: "Failed to fetch databases." });
+  }
+});
 
 
 module.exports = router;
