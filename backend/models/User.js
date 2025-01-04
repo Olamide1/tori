@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, },
   fullName: { type: String, required: true },
-  companyName: { type: String },
+  companyName: { type: String }, // TODO: remove this, no longer needed since we're using ref to company now
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },

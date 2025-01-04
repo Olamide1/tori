@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User"); // Adjust the model path if necessary
 const Subscriber = require("../models/Subscriber"); // Add this at the top
+const Company = require("../models/Company"); 
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -38,12 +39,31 @@ router.post("/signup", async (req, res) => {
     const user = new User({
       username,
       fullName,
-      companyName,
       email,
       password: hashedPassword,
     });
 
     await user.save();
+
+    // Check if the company name already exist
+    let existingCompany = await Company.findOne({ name: companyName });
+    if (!existingCompany) {
+      // create user in here?
+      existingCompany = new Company({
+        name: companyName,
+        owner: user._id,
+        users: [user._id]
+      });
+
+      await existingCompany.save()
+
+      // Since company is new, Then user is the owner of the company
+      user.role = 'owner'
+    }
+
+    // Link user to company
+    user.company = existingCompany._id
+    await user.save()
 
     // Create a new subscriber with a trial plan
     const subscriber = new Subscriber({
