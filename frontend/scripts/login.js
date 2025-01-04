@@ -39,6 +39,7 @@ const hideLoader = () => {
         if (result.token) {
           localStorage.setItem("tori_token", result.token);
           localStorage.setItem("tori_user", JSON.stringify(result.user));
+
           hideLoader()
           window.location.href = "dashboard.html"; // Redirect to the dashboard
         } else {

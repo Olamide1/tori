@@ -37,5 +37,20 @@ const companySchema = new Schema({
   },
 });
 
+// Remove __v when converting to JSON or Object
+companySchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.__v; // Remove __v
+    return ret;
+  },
+});
+
+companySchema.set('toObject', {
+  transform: (doc, ret) => {
+    delete ret.__v; // Remove __v
+    return ret;
+  },
+});
+
 const Company = mongoose.model("Company", companySchema);
 module.exports = Company;

@@ -336,7 +336,9 @@
     const dbUser = document.getElementById("db-user").value;
     const dbPassword = document.getElementById("db-password").value;
     const dbName = document.getElementById("db-name").value;
-    // const companyId = "YOUR_COMPANY_ID"; // TODO: Replace with the actual company ID
+
+    const user = JSON.parse(localStorage.getItem("tori_user"));
+    const companyId = user.company._id;
 
     // Validate form data
     if (!dbType || !dbHost || !dbPort || !dbUser || !dbPassword) {

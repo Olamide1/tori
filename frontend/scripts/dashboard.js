@@ -137,7 +137,7 @@ closeDbConfig.addEventListener("click", () => {
 
   logoutButton.addEventListener("click", () => {
     localStorage.removeItem('tori_user');
-    localStorage.setItem("tori_token")
+    localStorage.removeItem("tori_token")
 
     window.location.href = "login.html";
   });

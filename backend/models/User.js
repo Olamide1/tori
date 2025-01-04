@@ -19,4 +19,19 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+// Remove __v when converting to JSON or Object
+userSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.__v; // Remove __v
+    return ret;
+  },
+});
+
+userSchema.set('toObject', {
+  transform: (doc, ret) => {
+    delete ret.__v; // Remove __v
+    return ret;
+  },
+});
+
 module.exports = mongoose.model("User", userSchema);
