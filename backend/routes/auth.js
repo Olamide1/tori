@@ -63,11 +63,18 @@ router.post("/signup", async (req, res) => {
 // POST: Login
 router.post("/login", async (req, res) => {
   try {
+    /**
+     * email might also be the username
+     */
     const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ 
+      $or: [
+        { email: email },
+        { username: email },
+      ],
+     });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Account not found" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);

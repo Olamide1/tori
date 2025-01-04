@@ -12,3 +12,8 @@ Open http://localhost:8000
 Running the backend:
 `cd backend` & `python -m http.server`
 Open http://localhost:8000
+
+
+# TODOs
+- If account doesn't exist; show proper and correct error message.
+- 
