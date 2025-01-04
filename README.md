@@ -10,10 +10,10 @@ Running the frontend:
 Open http://localhost:8000
 
 Running the backend:
-`cd backend` & `python -m http.server`
+`cd backend` & `npm run dev`
 Open http://localhost:8000
 
 
 # TODOs
 - If account doesn't exist; show proper and correct error message.
-- 
+- Create company on sign up; do a proper linking of models.

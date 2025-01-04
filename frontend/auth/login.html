@@ -8,19 +8,19 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="../public/css/styles.css" rel="stylesheet">
 </head>
-<body>
+<body class="flex flex-col min-h-screen">
   <header class="bg-gradient-to-r from-primary to-gray-800 text-black py-6">
     <nav class="container mx-auto px-6 flex justify-between items-center flex-wrap">
       <h1 class="text-3xl font-extrabold">Tori</h1>
     </nav>
   </header>
   
-  <main class="bg-secondary-bg min-h-screen flex items-center justify-center">
+  <main class="bg-secondary-bg flex-1 flex items-center justify-center">
     <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
       <h1 class="text-2xl font-extrabold text-primary text-center mb-6">Log In</h1>
       <form id="login-form">
         <div class="mb-4">
-          <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+          <label for="email" class="block text-sm font-medium text-gray-700">Email or Username</label>
           <input type="email" id="email" required class="form-input" placeholder="jon@westeros.io">
         </div>
         <div class="mb-4">
