@@ -105,7 +105,7 @@
           </div>
         </div>
         <div class="bg-white p-6 rounded-lg shadow-md">
-          <select id="schema-selector" class="w-full mb-4 p-2 border rounded">
+          <select title="Select Schema" id="schema-selector" class="w-full mb-4 p-2 border rounded">
             <option value="" disabled selected>Select a Schema</option>
           </select>
           
@@ -206,7 +206,9 @@
   <script>
     document.addEventListener("DOMContentLoaded", () => {
   const databaseDropdown = document.getElementById("database-dropdown"); // Ensure the dropdown has this ID
-  const companyId = '6775817cdc04673f2ed0a36a' // "YOUR_COMPANY_ID"; // Replace with the actual company ID
+  
+  const user = JSON.parse(localStorage.getItem("tori_user"));
+  const companyId = user.company._id // "YOUR_COMPANY_ID"; // Replace with the actual company ID
 
   const fetchDatabases = async () => {
     try {
@@ -348,14 +350,14 @@
 
     // Prepare payload
     const payload = {
-      name: `${dbType} Database`,
+      name: `${dbType} ${dbName || ''} Database`,
       type: dbType,
       host: dbHost,
       port: parseInt(dbPort, 10),
       username: dbUser,
       password: dbPassword,
       databaseName: dbType !== "mongodb" ? dbName : null, // Optional for MongoDB
-      // companyId, // TODO: will send
+      companyId,
     };
 
     try {
