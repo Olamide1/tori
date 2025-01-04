@@ -600,7 +600,7 @@ Should be used to update one db credential
  */
 // Route to save db
 router.post("/save-db-credentials", async (req, res) => {
-  const { name, type, host, port, username, password, databaseName, companyId = '6775817cdc04673f2ed0a36a' } = req.body;
+  const { name, type, host, port, username, password, databaseName, companyId } = req.body;
 
   // Validate required fields
   if (!name || !type || !host || !port || !username || !password || !companyId) {

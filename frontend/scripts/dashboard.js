@@ -1,12 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("tori_user"));
   if (!user) {
     alert("You are not logged in!");
     window.location.href = "login.html";
     return;
   }
 
-  const token = `Bearer ${localStorage.getItem("token")}`;
+  const token = `Bearer ${localStorage.getItem("tori_token")}`;
   const welcomeMessage = document.getElementById("welcome-message");
   const logoutButton = document.getElementById("logout-button");
   const schemaUploadNav = document.getElementById("schema-upload-nav");
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const updateQueryButtonState = async () => {
     try {
       const trialResponse = await fetch("http://localhost:3000/api/subscribers/details", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
       });
   
       if (!trialResponse.ok) {
@@ -136,7 +136,9 @@ closeDbConfig.addEventListener("click", () => {
   }
 
   logoutButton.addEventListener("click", () => {
-    localStorage.clear();
+    localStorage.removeItem('tori_user');
+    localStorage.setItem("tori_token")
+
     window.location.href = "login.html";
   });
 
@@ -184,7 +186,7 @@ const setupAutosuggest = async () => {
     if (!schemaId) return;
 
     const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/metadata`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
     });
 
     if (response.ok) {
@@ -229,7 +231,7 @@ generateQueryButton.addEventListener("click", async () => {
   try {
     // Check remaining queries via subscription details
     const trialResponse = await fetch("http://localhost:3000/api/subscribers/details", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
     });
 
     if (!trialResponse.ok) {
@@ -371,7 +373,7 @@ generateQueryButton.addEventListener("click", async () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
         },
         body: JSON.stringify({ query }),
       });
@@ -450,7 +452,7 @@ generateQueryButton.addEventListener("click", async () => {
   const fetchSubscriptionDetails = async () => {
     try {
       const response = await fetch("http://localhost:3000/api/subscribers/details", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
       });
   
       if (!response.ok) throw new Error("Failed to fetch subscription details.");
@@ -486,7 +488,7 @@ generateQueryButton.addEventListener("click", async () => {
     try {
       showLoader();
       const response = await fetch("http://localhost:3000/api/auth/profile", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
       });
   
       if (response.ok) {
@@ -515,7 +517,7 @@ generateQueryButton.addEventListener("click", async () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
         },
       });
   
@@ -627,7 +629,7 @@ generateQueryButton.addEventListener("click", async () => {
   
     try {
       const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/metadata`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
       });
   
       if (response.ok) {
@@ -871,7 +873,7 @@ const validateGeneratedQuery = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
       },
       body: JSON.stringify({ query, dbConfig }),
     });
@@ -936,7 +938,7 @@ const exportQuery = (queryText) => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
         },
         body: JSON.stringify({ username, companyName }),
       });
@@ -946,7 +948,7 @@ const exportQuery = (queryText) => {
       if (response.ok) {
         hideLoader()
         alert("Profile updated successfully.");
-        localStorage.setItem("user", JSON.stringify(result.user));
+        localStorage.setItem("tori_user", JSON.stringify(result.user));
       } else {
         hideLoader()
         alert(
@@ -1029,7 +1031,7 @@ const exportQuery = (queryText) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
           },
         });
   
