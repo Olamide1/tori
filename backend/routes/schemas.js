@@ -5,10 +5,12 @@ const sqlFormatter = require("sql-formatter"); // For SQL formatting
 const { Parser } = require("node-sql-parser");
 const Schema = require("../models/Schema");
 const Subscriber = require("../models/Subscriber")
+const User = require("../models/User")
 const { verifyToken, validateQuerySafety } = require("../middlewares/authMiddleware");
 const { OpenAI } = require("openai");
 const { parse } = require("csv-parse/lib/sync");
-const { Pool } = require("pg"); // For PostgreSQL. Replace with mysql2 or other library if needed.
+const { Client } = require("pg"); // For PostgreSQL.
+const mysql = require('mysql2/promise'); // For mysql
 
 const Database = require("../models/Database"); // Import the Database model
 const Company = require("../models/Company"); // Import the Company model
@@ -69,6 +71,7 @@ const parseSQLFile = (sqlContent, databaseType = "mysql") => {
           });
       }
     } catch (error) {
+      // TODO: why does this error happen on schema upload?
       console.error("Parsing error:", { statement, error: error.message });
     }
   });
@@ -519,30 +522,206 @@ router.post("/:id/validate-query", verifyToken, validateQuerySafety, async (req,
 
 // Route to execute a query
 router.post("/query", async (req, res) => {
-  // todo: get db connection param from db
-  const { host, port, user, password, database, query } = req.body;
 
-  if (!host || !port || !user || !password || !database || !query) {
-    return res.status(400).json({ message: "All credentials and query are required." });
+  try {
+    // todo: get db connection param from db
+  const { databaseId, query } = req.body;
+
+  if (!databaseId || !query) {
+    return res.status(400).json({ message: "Database and question are required." });
   }
 
-  const pool = new Pool({
-    host,
-    port,
-    user,
-    password,
-    database,
+  const db = await Database.findOne({ _id: databaseId });
+
+  if (!db) {
+    return res.status(400).json({ message: "Database not found." });
+  }
+
+  // return res.status(200).json({ db: db.toJSON() })
+
+  // Replace 'your_database_name'
+  // const MySQL_SCHEMA_QUERY = `
+  //   SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, CHARACTER_MAXIMUM_LENGTH
+  //   FROM INFORMATION_SCHEMA.COLUMNS
+  //   WHERE TABLE_SCHEMA = '${db.databaseName}';
+  // `
+  // todo: shorten the schema?
+  const MySQL_SCHEMA_QUERY = `
+    SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = '${db.databaseName}';
+  `
+
+  const PostgreSQL_SCHEMA_QUERY = `
+    SELECT table_name, column_name, data_type, is_nullable, column_default, character_maximum_length
+    FROM information_schema.columns
+    WHERE table_schema = 'public';
+  `
+
+  const MicrosoftSQL_SCHEMA_QUERY = `
+    SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, CHARACTER_MAXIMUM_LENGTH
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_CATALOG = '${db.databaseName}' AND TABLE_SCHEMA = 'dbo';
+  `
+
+  const SqlLite_SCHEMA_QUERY = `
+    PRAGMA table_info('table_name');
+  `
+
+
+  // TODO: should we use different variables based on the db type?
+  // initialize pool based on database type
+  let dbConn
+  if (db.type === 'mysql') {
+    // https://sidorares.github.io/node-mysql2/docs
+
+    /**
+     * @type {import('mysql2').Connection}
+     */
+    dbConn = await mysql.createConnection({
+      host: db.host,
+      user: db.username,
+      database: db.databaseName,
+      password: db.password,
+      port: db.port,
+    });
+  } else if (db.type === 'postgresql') {
+    // https://node-postgres.com/apis/client
+    dbConn = new Client({
+      user: db.username,
+      password: db.password,
+      host: db.host,
+      port: db.port,
+      database: db.databaseName,
+    })
+  } // TODO: handle mongo db type
+
+  const [schemaResult, _] = await dbConn.query(MySQL_SCHEMA_QUERY);
+
+  const TEST_RESPONSE = [
+      {
+          "id": 1,
+          "email": "nwachukwuossai@gmail.com",
+          "password": "pass",
+          "firstname": "Ossai",
+          "lastname": "Nwachukwu",
+          "lastlogintime": null
+      },
+      {
+          "id": 2,
+          "email": "ore.alemede@growagric.com",
+          "password": "oreore",
+          "firstname": "Ore",
+          "lastname": "Ore",
+          "lastlogintime": null
+      },
+      {
+          "id": 3,
+          "email": "david.njonjo@growagric.com",
+          "password": "dave",
+          "firstname": "David",
+          "lastname": "Njonjo",
+          "lastlogintime": null
+      }
+    ]
+  // return res.status(200).json( {
+  //     "message": "Query executed successfully.",
+  //     "data": TEST_RESPONSE,
+  //     "f": "SELECT * FROM admins",
+  //     schemaResult
+  // });
+
+  // ----
+  // Construct the OpenAI prompt with explicit structure for the response
+  const fullPrompt = `
+    You are an expert ${db.type} generator. 
+    Given the following schema: 
+    
+    ${JSON.stringify(schemaResult)}
+
+    And the user query: "${query}".
+    Generate a SQL query that matches the user's intent.
+
+    Always return the response in the following stringified JSON structure:
+    {
+      "generatedQuery": "<SQL query>"
+    }
+  `;
+
+  if (fullPrompt.length > 8192) {
+    // return res.status(500).json({ message: "Query too long. " + fullPrompt.length + " too long." });
+  }
+
+  // Call OpenAI API
+  const aiResponse = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      { role: "system", content: "Generate SQL queries in JSON format only." },
+      { role: "user", content: fullPrompt },
+    ],
+    max_tokens: 300,
   });
+
+  // Parse OpenAI response
+  console.log('aiResponse', JSON.stringify(aiResponse, null, 4));
+  
+  const aiContent = aiResponse.choices?.[0]?.message?.content?.trim();
+  if (!aiContent) {
+    console.error("Unexpected OpenAI response structure:", JSON.stringify(aiResponse, null, 2));
+    return res.status(500).json({ message: "Failed to generate query. Invalid AI response." });
+  }
+
+  // Parse JSON from the response
+  let parsedResponse;
+  try {
+    parsedResponse = JSON.parse(aiContent);
+  } catch (parseError) {
+    console.error("Error parsing AI response as JSON:", aiContent);
+    return res.status(500).json({ message: "Failed to parse AI response as JSON." });
+  }
+
+  if (!parsedResponse?.generatedQuery) {
+    return res.status(500).json({ message: "Invalid AI response: 'generatedQuery' missing." });
+  }
+  // ----
+
+
 
   try {
     // Execute the query
-    const result = await pool.query(query);
-    return res.status(200).json({ message: "Query executed successfully.", data: result.rows });
+    console.log('Generated Query', JSON.stringify(parsedResponse?.generatedQuery))
+    
+
+    if (db.type === 'mysql') {
+      
+      const result = await dbConn.query(parsedResponse?.generatedQuery);
+
+      /**
+       * @type {[any[], import('mysql2').FieldPacket[]]}
+       */
+      const [results, fields] = result
+
+      await dbConn.end()
+
+      return res.status(200).json({ message: "Query executed successfully.", data: results, f: parsedResponse.generatedQuery });
+    } else if (db.type === 'postgresql') {
+
+      // dbConn.end()
+    }
+
+    return res.status(200).json({ 
+      message: "Query executed successfully.",
+      data: result.rows,
+      query: `${JSON.stringify(parsedResponse?.generatedQuery)}`
+     });
   } catch (error) {
     console.error("Error executing query:", error.message);
     return res.status(500).json({ message: "Query execution failed.", error: error.message });
   } finally {
-    await pool.end(); // Ensure the pool is closed
+    // ?? Ensure the pool/connection is closed
+  }
+  } catch (error) {
+    console.error("Error executing query:", error?.message);
   }
 });
 

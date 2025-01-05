@@ -6,11 +6,11 @@
 Run `sudo mongod -dbpath="/usr/local/var/mongodb"` to start mongo
 
 Running the frontend:
-`cd frontend` & `python -m http.server`
+`cd frontend && python -m http.server`
 Open http://localhost:8000
 
 Running the backend:
-`cd backend` & `npm run dev`
+`cd backend && npm run dev`
 Open http://localhost:8000
 
 
@@ -18,3 +18,4 @@ Open http://localhost:8000
 - If account doesn't exist; show proper and correct error message.
 - Create company on sign up; do a proper linking of models.
 - Show previously saved Database Credentials (in the Settings??)
+- Better error message if we can't connect to the database when they execute queries...

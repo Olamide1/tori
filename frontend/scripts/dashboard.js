@@ -357,11 +357,12 @@ generateQueryButton.addEventListener("click", async () => {
   });
 
   document.getElementById("execute-query")?.addEventListener("click", async () => {
-    const schemaId = document.getElementById("run-query-schema-selector").value;
+    
+    const databaseId = document.getElementById('database-dropdown').value
     const query = document.getElementById("run-query-input").value.trim();
   
-    if (!schemaId || !query) {
-      alert("Please select a schema and provide a query.");
+    if (!databaseId || !query) {
+      alert("Please select a database and provide a query.");
       return;
     }
   
@@ -375,14 +376,14 @@ generateQueryButton.addEventListener("click", async () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, databaseId }),
       });
   
       const result = await response.json();
       hideLoader();
   
       if (response.ok) {
-        renderQueryResults(result.data);
+        renderQueryResults(result.data, result.query);
       } else {
         alert(result.message || "Failed to execute query.");
       }
@@ -393,16 +394,26 @@ generateQueryButton.addEventListener("click", async () => {
     }
   });
   
-  const renderQueryResults = (data) => {
-    const resultsHeaderRow = document.getElementById("results-header-row");
-    const resultsBody = document.getElementById("results-body");
-    resultsHeaderRow.innerHTML = "";
-    resultsBody.innerHTML = "";
-  
+  /**
+   * TODO: this needs to be better.
+   * We need to provide a header of columns, and then an array or object? or the data
+   * @param {*} data 
+   * @returns 
+   */
+  const renderQueryResults = (data, query) => {
+    
     if (!data || data.length === 0) {
       alert("No results found.");
       return;
     }
+    
+    const resultsQuery = document.getElementById("results-query");
+    resultsQuery.innerText = query
+    
+    const resultsHeaderRow = document.getElementById("results-header-row");
+    const resultsBody = document.getElementById("results-body");
+    resultsHeaderRow.innerHTML = "";
+    resultsBody.innerHTML = "";
   
     // Generate header row
     const headers = Object.keys(data[0]);

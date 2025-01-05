@@ -111,7 +111,6 @@
           
           <textarea id="query-input" class="w-full p-4 border rounded-md min-h-[150px] resize-y" placeholder="Write your query in plain language..."></textarea>
 
-          
           <p id="autosuggest-info" class="text-sm text-gray-500 mt-2">
             Start typing your query. Autosuggestions for columns and tables will appear.
           </p>
@@ -126,7 +125,7 @@
             </div>
           </div>
           
-          <button id="generate-query" class="btn-primary mt-4">Generate Query</button>
+          <button id="generate-query" class="btn-primary mt-4" type="button">Generate Query</button>
           
           <div id="query-limit-message" class="hidden mt-4 text-red-600 text-center">
             <p>You have used all your trial queries. Please upgrade to Pro to continue.</p>
@@ -188,11 +187,22 @@
     <textarea id="run-query-input" class="w-full p-4 border rounded-md min-h-[150px] resize-y" placeholder="Enter your SQL query..."></textarea>
 
     <div class="mt-4">
-      <button id="execute-query" class="btn-primary">Execute Query</button>
-      <button id="clear-query" class="btn-secondary">Clear</button>
+      <button id="execute-query" class="btn-primary" type="button">Execute Query</button>
+      <button id="clear-query" class="btn-secondary" type="button">Clear</button>
     </div>
 
     <div id="query-results" class="mt-6 hidden">
+      <h3 class="text-lg font-bold text-primary">Executed Query:</h3>
+      <kbd id="results-query" class="
+
+      block w-full
+      
+      px-2 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
+
+      </kbd>
+
+      <hr class="mt-8 pb-4" />
+
       <h3 class="text-lg font-bold text-primary">Query Results:</h3>
       <table class="min-w-full table-auto bg-white rounded-lg shadow overflow-hidden mt-4">
         <thead class="bg-gray-100">
