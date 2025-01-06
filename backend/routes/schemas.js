@@ -523,8 +523,10 @@ router.post("/:id/validate-query", verifyToken, validateQuerySafety, async (req,
 // Route to execute a query
 router.post("/query", async (req, res) => {
 
+  // TODO: add trial check.
+
   try {
-    // todo: get db connection param from db
+    // todo: rename databaseId
   const { databaseId, query } = req.body;
 
   if (!databaseId || !query) {
@@ -534,7 +536,75 @@ router.post("/query", async (req, res) => {
   const db = await Database.findOne({ _id: databaseId });
 
   if (!db) {
-    return res.status(400).json({ message: "Database not found." });
+    // then check if it's a schema
+    // Fetch schema by ID
+    const schema = await Schema.findById(databaseId);
+    if (!schema) {
+      // no need for "Database not found."
+      return res.status(404).json({ message: "Schema not found." });
+    }
+    // todo: if schema found, we should do auth to make sure this user has rights to access it
+
+    // Prepare schema description
+    const schemaDescription = schema.columns
+      .map((col) => `${col.name} (${col.dataType}): ${col.description || "No description"}`)
+      .join(", ");
+
+    // Construct the OpenAI prompt with explicit structure for the response
+    const fullPrompt = `
+      You are an expert SQL generator. 
+      Given the following schema: ${schemaDescription}, 
+      and the user query: "${query}", 
+      generate a SQL query that matches the user's intent.
+      
+      Always return the response in the following JSON structure:
+      {
+        "generatedQuery": "<SQL query>"
+      }
+    `;
+
+    // Call OpenAI API
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        { role: "system", content: "Generate SQL queries in JSON format only." },
+        { role: "user", content: fullPrompt },
+      ],
+      max_tokens: 300,
+    });
+
+    // Parse OpenAI response
+    const aiContent = aiResponse.choices[0].message.content.trim();
+    if (!aiContent) {
+      console.error("Unexpected OpenAI response structure:", JSON.stringify(aiResponse, null, 2));
+      return res.status(500).json({ message: "Failed to generate query. Invalid AI response." });
+    }
+
+    // Parse JSON from the response
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(aiContent);
+    } catch (parseError) {
+      console.error("Error parsing AI response as JSON:", aiContent);
+      return res.status(500).json({ message: "Failed to parse AI response as JSON." });
+    }
+
+    if (!parsedResponse.generatedQuery) {
+      return res.status(500).json({ message: "Invalid AI response: 'generatedQuery' missing." });
+    }
+
+
+    // Save to schema history, why?
+    // schema.history.push({
+    //   prompt,
+    //   generatedQuery: parsedResponse.generatedQuery,
+    //   databaseType,
+    // });
+    // await schema.save();
+
+    // Respond with the generated SQL
+    return res.status(200).json({ message: "Query generated successfully", sql: parsedResponse.generatedQuery });
+
   }
 
   // return res.status(200).json({ db: db.toJSON() })
@@ -549,7 +619,7 @@ router.post("/query", async (req, res) => {
   const MySQL_SCHEMA_QUERY = `
     SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE
     FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = '${db.databaseName}';
+    WHERE TABLE_SCHEMA = '${db?.databaseName}';
   `
 
   const PostgreSQL_SCHEMA_QUERY = `
@@ -703,7 +773,7 @@ router.post("/query", async (req, res) => {
 
       await dbConn.end()
 
-      return res.status(200).json({ message: "Query executed successfully.", data: results, f: parsedResponse.generatedQuery });
+      return res.status(200).json({ message: "Query executed successfully.", data: results, query: parsedResponse.generatedQuery });
     } else if (db.type === 'postgresql') {
 
       // dbConn.end()
@@ -721,7 +791,12 @@ router.post("/query", async (req, res) => {
     // ?? Ensure the pool/connection is closed
   }
   } catch (error) {
-    console.error("Error executing query:", error?.message);
+    console.error("Error executing query:", error);
+    let message = "Sorry. Query execution failed."
+    if (error.code === 'ECONNREFUSED') {
+      message = 'Failed to connect to database. Remote database refused connection.'
+    }
+    return res.status(500).json({ message, error: error.message });
   }
 });
 

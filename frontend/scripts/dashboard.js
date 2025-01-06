@@ -412,7 +412,14 @@ document.addEventListener("DOMContentLoaded", () => {
         hideLoader();
 
         if (response.ok) {
-          renderQueryResults(result.data, result.query);
+
+          hideAllResultsSections() // as a means to "clear the UI"
+          if (result.sql) {
+            
+            renderSqlResult(result.sql)
+          } else {
+            renderQueryResults(result.data, result.query);
+          }
         } else {
           alert(result.message || "Failed to execute query.");
         }
@@ -424,8 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   /**
-   * TODO: this needs to be better.
-   * We need to provide a header of columns, and then an array or object? or the data
+   * 
    * @param {*} data
    * @returns
    */
@@ -469,6 +475,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("query-results").classList.remove("hidden");
   };
+
+  const renderSqlResult = (sql) => {
+    document.getElementById("results-sql").textContent = sql;
+    document.getElementById("query-results-2").classList.remove("hidden");
+  }
+
+  const hideAllResultsSections = () => {
+    document.getElementById("query-results").classList.add("hidden");
+    document.getElementById("query-results-2").classList.add("hidden");
+  }
 
   document.getElementById("clear-query").addEventListener("click", () => {
     document.getElementById("run-query-input").value = "";
