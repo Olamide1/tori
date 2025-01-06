@@ -19,6 +19,7 @@
     <aside class="bg-gradient-to-r from-primary text-white w-full md:w-64 p-6">
       <h2 class="text-2xl font-bold mb-6 text-black">Tori Dashboard</h2>
       <nav class="space-y-4">
+        <!-- TODO: change to buttons, like logout button -->
         <a href="#" id="schema-upload-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Manage Schemas</a>
         <a href="#" id="ai-query-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Generate Queries</a>
         <a href="#" id="ai-run-query-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Run Queries (New)</a>
@@ -26,7 +27,7 @@
         <a href="#" id="favorites-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Favorites</a>
         <a href="#" id="settings-nav" class="block py-2 px-4 rounded hover:bg-indigo-600 text-black">Settings</a>
       </nav>
-      <button id="logout-button" class="btn-primary mt-8 w-full">Logout</button>
+      <button type="button" id="logout-button" class="btn-primary mt-8 w-full">Logout</button>
     </aside>
 
   <div id="loader" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex flex-col items-center justify-center z-50 space-y-4">
@@ -179,7 +180,8 @@
     <div class="mb-4">
       <label for="database-dropdown" class="block text-sm font-medium text-gray-700">Select Database</label>
       <select id="database-dropdown" class="form-input mt-2 w-full">
-        <option value="" disabled selected>Loading databases...</option>
+        <optgroup id="db-conns" label="Database connections"></optgroup>
+        <optgroup id="schema-uploads" label="Schema uploads"></optgroup>
       </select>
     </div>
     
@@ -196,7 +198,7 @@
       <kbd id="results-query" class="
 
       block w-full
-      
+
       px-2 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500">
 
       </kbd>
@@ -213,42 +215,7 @@
     </div>
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-  const databaseDropdown = document.getElementById("database-dropdown"); // Ensure the dropdown has this ID
-  
-  const user = JSON.parse(localStorage.getItem("tori_user"));
-  const companyId = user.company._id // "YOUR_COMPANY_ID"; // Replace with the actual company ID
 
-  const fetchDatabases = async () => {
-    try {
-      const response = await fetch(`http://localhost:3000/api/schemas/databases/${companyId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch databases.");
-      }
-
-      const databases = await response.json();
-
-      // Clear existing options
-      databaseDropdown.innerHTML = '<option value="" disabled selected>Select a Database</option>';
-
-      // Populate dropdown with database names
-      databases.forEach((db) => {
-        const option = document.createElement("option");
-        option.value = db._id; // Use database ID as the value
-        option.textContent = db.name; // Use database name as the label
-        databaseDropdown.appendChild(option);
-      });
-    } catch (error) {
-      console.error("Error fetching databases:", error);
-      alert("Failed to load databases. Please try again later.");
-    }
-  };
-
-  fetchDatabases();
-});
-
-  </script>
 </section>
 
 
@@ -335,6 +302,9 @@
 
 
 <script>
+  /**
+   * Script to submit a form for db credentials
+  */
   document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("db-credentials-form");
 
@@ -398,6 +368,9 @@
 </script>
 
 <script>
+  /**
+   * Script to show the input fields in settings when adding a new database credential
+   */
   document.addEventListener("DOMContentLoaded", () => {
   const dbTypeSelect = document.getElementById("db-type");
   const dbNameField = document.getElementById("db-name-field");
@@ -451,5 +424,6 @@
   </div>
 
   <script src="../scripts/dashboard.js"></script>
+  <!-- <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script> -->
 </body>
 </html>
