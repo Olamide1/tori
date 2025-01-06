@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const runQuerySection = document.getElementById("run-query-section");
 
-
   const schemaUploadSection = document.getElementById("schema-upload-section");
   const querySchemasSection = document.getElementById("query-schemas-section");
   const queryHistorySection = document.getElementById("query-history-section");
@@ -55,38 +54,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveSchemaButton = document.getElementById("save-schema");
   const schemaFileInput = document.getElementById("schema-file");
   const schemaNameInput = document.getElementById("schema-name"); // Define this if used in the function
-  
-  
-
 
   let currentPage = 1;
   const itemsPerPage = 20;
   let dbConfig = {};
 
-
   const resetSections = () => {
-    [schemaUploadSection, querySchemasSection, queryHistorySection, favoritesSection, settingsSection, runQuerySection].forEach((section) =>
-      section.classList.add("hidden")
-    );
+    [
+      schemaUploadSection,
+      querySchemasSection,
+      queryHistorySection,
+      favoritesSection,
+      settingsSection,
+      runQuerySection,
+    ].forEach((section) => section.classList.add("hidden"));
     errorMessage.classList.add("hidden");
     aiGeneratedSql.classList.add("hidden");
   };
 
   const updateQueryButtonState = async () => {
     try {
-      const trialResponse = await fetch("http://localhost:3000/api/subscribers/details", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
-      });
-  
+      const trialResponse = await fetch(
+        "http://localhost:3000/api/subscribers/details",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+          },
+        }
+      );
+
       if (!trialResponse.ok) {
         console.error("Failed to check trial status.");
         return;
       }
-  
+
       const { remainingQueries } = await trialResponse.json();
       const generateQueryButton = document.getElementById("generate-query");
       const queryLimitMessage = document.getElementById("query-limit-message");
-  
+
       if (remainingQueries <= 0) {
         generateQueryButton.disabled = true;
         queryLimitMessage.classList.remove("hidden");
@@ -98,51 +103,51 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error fetching subscription details:", error);
     }
   };
-  
-  
 
   const switchActiveTab = (nav) => {
-    document.querySelectorAll("aside a").forEach((el) =>
-      el.classList.remove("bg-indigo-600", "text-white")
-    );
+    document
+      .querySelectorAll("aside a")
+      .forEach((el) => el.classList.remove("bg-indigo-600", "text-white"));
     nav.classList.add("bg-indigo-600", "text-white");
   };
-// Event Listeners for Validation Modal
-validateQueryButton.addEventListener("click", () => {
-  dbConfigModal.classList.remove("hidden");
-});
-dbConfigForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  dbConfig = {
-    host: document.getElementById("db-host").value,
-    port: document.getElementById("db-port").value,
-    user: document.getElementById("db-user").value,
-    password: document.getElementById("db-password").value,
-    database: document.getElementById("db-name").value,
-  };
-  dbConfigModal.classList.add("hidden");
-  alert("Database configuration saved.");
-});
+  // Event Listeners for Validation Modal
+  validateQueryButton.addEventListener("click", () => {
+    dbConfigModal.classList.remove("hidden");
+  });
+  dbConfigForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    dbConfig = {
+      host: document.getElementById("db-host").value,
+      port: document.getElementById("db-port").value,
+      user: document.getElementById("db-user").value,
+      password: document.getElementById("db-password").value,
+      database: document.getElementById("db-name").value,
+    };
+    dbConfigModal.classList.add("hidden");
+    alert("Database configuration saved.");
+  });
 
-closeDbConfig.addEventListener("click", () => {
-  dbConfigModal.classList.add("hidden");
-});
+  closeDbConfig.addEventListener("click", () => {
+    dbConfigModal.classList.add("hidden");
+  });
 
   if (welcomeMessage) {
     const hour = new Date().getHours();
     const timeOfDay =
-      hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+      hour < 12
+        ? "Good morning"
+        : hour < 18
+        ? "Good afternoon"
+        : "Good evening";
     welcomeMessage.textContent = `${timeOfDay}, ${user.username}!`;
   }
 
   logoutButton.addEventListener("click", () => {
-    localStorage.removeItem('tori_user');
-    localStorage.removeItem("tori_token")
+    localStorage.removeItem("tori_user");
+    localStorage.removeItem("tori_token");
 
     window.location.href = "login.html";
   });
-
-  
 
   schemaUploadNav.addEventListener("click", () => {
     resetSections();
@@ -151,133 +156,150 @@ closeDbConfig.addEventListener("click", () => {
   });
 
   aiQueryNav.addEventListener("click", async () => {
-    const schemas = await fetchSchemas();
     resetSections();
+    await fetchSchemasAndSetOptions();
+    querySchemasSection.classList.remove("hidden");
+    switchActiveTab(aiQueryNav);
+  });
+
+  // TODO: we should only call this once.
+  const fetchSchemasAndSetOptions = async () => {
+    const schemas = await fetchSchemas();
     if (schemas.length === 0) {
+      // TODO: are we setting the error before removing "hidden" class?
       errorMessage.classList.remove("hidden");
     } else {
       setupAutosuggest(); // Set up autosuggest for the selected schema
       populateSchemaSelector(schemas);
     }
-    querySchemasSection.classList.remove("hidden");
-    switchActiveTab(aiQueryNav);
-  });
+  };
 
   const showLoader = () => {
     const loader = document.getElementById("loader");
     loader.classList.remove("hidden");
-};
+  };
 
-const hideLoader = () => {
+  const hideLoader = () => {
     const loader = document.getElementById("loader");
     loader.classList.add("hidden");
-};
+  };
 
+  document.addEventListener("DOMContentLoaded", () => {
+    updateQueryButtonState(); // Call on page load
+  });
 
+  const setupAutosuggest = async () => {
+    try {
+      const schemaId = schemaSelector.value;
+      if (!schemaId) return;
 
-document.addEventListener("DOMContentLoaded", () => {
-  updateQueryButtonState(); // Call on page load
-});
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/${schemaId}/metadata`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+          },
+        }
+      );
 
+      if (response.ok) {
+        const { metadata } = await response.json();
 
-const setupAutosuggest = async () => {
-  try {
+        // Combine table and column names for autosuggest
+        const suggestions = metadata.map(
+          (item) => `${item.tableName}.${item.columnName}`
+        );
+
+        // Initialize autosuggest library (example with Awesomplete)
+        new Awesomplete(queryInput, {
+          list: suggestions,
+          minChars: 1,
+        });
+
+        // Ensure #query-input size remains consistent
+        queryInput.style.minHeight = "150px";
+        queryInput.style.width = "100%"; // Prevent width reduction
+        queryInput.style.resize = "vertical"; // Allow vertical resizing only
+      } else {
+        console.error("Failed to fetch schema metadata.");
+      }
+    } catch (error) {
+      console.error("Error setting up autosuggest:", error);
+    }
+  };
+
+  generateQueryButton.addEventListener("click", async () => {
     const schemaId = schemaSelector.value;
-    if (!schemaId) return;
+    const prompt = queryInput.value.trim();
+    const databaseType = "mysql";
 
-    const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/metadata`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
-    });
+    showLoader();
 
-    if (response.ok) {
-      const { metadata } = await response.json();
-
-      // Combine table and column names for autosuggest
-      const suggestions = metadata.map((item) => `${item.tableName}.${item.columnName}`);
-
-      // Initialize autosuggest library (example with Awesomplete)
-      new Awesomplete(queryInput, {
-        list: suggestions,
-        minChars: 1,
-      });
-
-      // Ensure #query-input size remains consistent
-      queryInput.style.minHeight = "150px";
-      queryInput.style.width = "100%"; // Prevent width reduction
-      queryInput.style.resize = "vertical"; // Allow vertical resizing only
-    } else {
-      console.error("Failed to fetch schema metadata.");
-    }
-  } catch (error) {
-    console.error("Error setting up autosuggest:", error);
-  }
-};
-
-
-
-generateQueryButton.addEventListener("click", async () => {
-  const schemaId = schemaSelector.value;
-  const prompt = queryInput.value.trim();
-  const databaseType = "mysql";
-
-  showLoader();
-
-  if (!schemaId || !prompt) {
-    hideLoader();
-    alert("Please select a schema and provide a query prompt.");
-    return;
-  }
-
-  try {
-    // Check remaining queries via subscription details
-    const trialResponse = await fetch("http://localhost:3000/api/subscribers/details", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
-    });
-
-    if (!trialResponse.ok) {
-      throw new Error("Error validating trial status.");
-    }
-
-    const { remainingQueries } = await trialResponse.json();
-
-    if (remainingQueries <= 0) {
+    if (!schemaId || !prompt) {
       hideLoader();
-      alert("Your trial has ended. Please upgrade to Pro to continue.");
+      alert("Please select a schema and provide a query prompt.");
       return;
     }
 
-    // Proceed with generating the query
-    const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/generate-query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-      body: JSON.stringify({ prompt, databaseType }),
-    });
+    try {
+      // Check remaining queries via subscription details
+      const trialResponse = await fetch(
+        "http://localhost:3000/api/subscribers/details",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+          },
+        }
+      );
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Generate Query API Error:", error);
+      if (!trialResponse.ok) {
+        throw new Error("Error validating trial status.");
+      }
+
+      const { remainingQueries } = await trialResponse.json();
+
+      if (remainingQueries <= 0) {
+        hideLoader();
+        alert("Your trial has ended. Please upgrade to Pro to continue.");
+        return;
+      }
+
+      // Proceed with generating the query
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/${schemaId}/generate-query`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify({ prompt, databaseType }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Generate Query API Error:", error);
+        hideLoader();
+        alert(error.message || "Failed to generate query.");
+        return;
+      }
+
+      const result = await response.json();
       hideLoader();
-      alert(error.message || "Failed to generate query.");
-      return;
+      generatedSqlText.textContent = result.sql; // Display generated SQL
+      aiGeneratedSql.classList.remove("hidden"); // Show the results section
+
+      // Update button state after generating a query
+      await updateQueryButtonState();
+    } catch (error) {
+      hideLoader();
+      console.error("Error generating query:", error);
+      alert(
+        "Unable to validate trial status or generate query. Please try again later."
+      );
     }
-
-    const result = await response.json();
-    hideLoader();
-    generatedSqlText.textContent = result.sql; // Display generated SQL
-    aiGeneratedSql.classList.remove("hidden"); // Show the results section
-
-    // Update button state after generating a query
-    await updateQueryButtonState();
-  } catch (error) {
-    hideLoader();
-    console.error("Error generating query:", error);
-    alert("Unable to validate trial status or generate query. Please try again later.");
-  }
-});
-
+  });
 
   // Copy SQL to Clipboard
   copyToClipboardButton.addEventListener("click", () => {
@@ -289,51 +311,55 @@ generateQueryButton.addEventListener("click", async () => {
       alert("No SQL to copy.");
     }
   });
-  
+
   saveFavoriteButton.addEventListener("click", async () => {
     const schemaId = schemaSelector.value;
     const queryName = prompt("Enter a name for this query:");
     const queryText = generatedSqlText.textContent.trim();
-    showLoader()
-  
+    showLoader();
+
     if (!queryName || !queryText) {
-      hideLoader()
+      hideLoader();
       alert("Query name and text are required.");
       return;
     }
-  
+
     try {
-      const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/save-query`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
-        },
-        body: JSON.stringify({ queryName, queryText }),
-      });
-  
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/${schemaId}/save-query`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify({ queryName, queryText }),
+        }
+      );
+
       const result = await response.json();
       if (response.ok) {
-        hideLoader()
+        hideLoader();
         alert("Query saved as favorite successfully.");
       } else {
-        hideLoader()
+        hideLoader();
         alert(result.message || "Failed to save query as favorite.");
       }
     } catch (error) {
-      hideLoader()
+      hideLoader();
       console.error("Error saving favorite query:", error);
       alert("Error saving query. Please try again later.");
     }
   });
-  
 
   queryHistoryNav.addEventListener("click", async () => {
-    console.log('pionttt');
-    
+    console.log("pionttt");
+
     const schemaId = schemaSelector.value;
     if (!schemaId) {
-      alert("Please select a schema in the generate query section to view its query history.");
+      alert(
+        "Please select a schema in the generate query section to view its query history."
+      );
       return;
     }
     resetSections();
@@ -343,78 +369,80 @@ generateQueryButton.addEventListener("click", async () => {
   });
 
   runQueryNav.addEventListener("click", async () => {
-    console.log('come to me')
-    
-  
+    console.log("come to me");
+
     if (!runQuerySection) {
       console.error("Run Query section is missing in the HTML.");
       return;
     }
     resetSections(); // Hide all other sections
-    
+
     runQuerySection.classList.remove("hidden"); // Show the Run Query section
     switchActiveTab(runQueryNav); // Highlight the active tab
   });
 
-  document.getElementById("execute-query")?.addEventListener("click", async () => {
-    
-    const databaseId = document.getElementById('database-dropdown').value
-    const query = document.getElementById("run-query-input").value.trim();
-  
-    if (!databaseId || !query) {
-      alert("Please select a database and provide a query.");
-      return;
-    }
-  
-    try {
-      showLoader();
-  
-      // todo: connect this route
-      const response = await fetch(`http://localhost:3000/api/schemas/query`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
-        },
-        body: JSON.stringify({ query, databaseId }),
-      });
-  
-      const result = await response.json();
-      hideLoader();
-  
-      if (response.ok) {
-        renderQueryResults(result.data, result.query);
-      } else {
-        alert(result.message || "Failed to execute query.");
+  document
+    .getElementById("execute-query")
+    ?.addEventListener("click", async () => {
+      const databaseId = document.getElementById("database-dropdown").value;
+      const query = document.getElementById("run-query-input").value.trim();
+
+      if (!databaseId || !query) {
+        alert("Please select a database and provide a query.");
+        return;
       }
-    } catch (error) {
-      hideLoader();
-      console.error("Error executing query:", error);
-      alert("Error executing query. Please try again later.");
-    }
-  });
-  
+
+      try {
+        showLoader();
+
+        // todo: connect this route
+        const response = await fetch(
+          `http://localhost:3000/api/schemas/query`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+            },
+            body: JSON.stringify({ query, databaseId }),
+          }
+        );
+
+        const result = await response.json();
+        hideLoader();
+
+        if (response.ok) {
+          renderQueryResults(result.data, result.query);
+        } else {
+          alert(result.message || "Failed to execute query.");
+        }
+      } catch (error) {
+        hideLoader();
+        console.error("Error executing query:", error);
+        alert("Error executing query. Please try again later.");
+      }
+    });
+
   /**
    * TODO: this needs to be better.
    * We need to provide a header of columns, and then an array or object? or the data
-   * @param {*} data 
-   * @returns 
+   * @param {*} data
+   * @returns
    */
   const renderQueryResults = (data, query) => {
-    
     if (!data || data.length === 0) {
       alert("No results found.");
       return;
     }
-    
+
     const resultsQuery = document.getElementById("results-query");
-    resultsQuery.innerText = query
-    
+    resultsQuery.innerText = query;
+
     const resultsHeaderRow = document.getElementById("results-header-row");
     const resultsBody = document.getElementById("results-body");
     resultsHeaderRow.innerHTML = "";
     resultsBody.innerHTML = "";
-  
+
     // Generate header row
     const headers = Object.keys(data[0]);
     headers.forEach((header) => {
@@ -423,36 +451,36 @@ generateQueryButton.addEventListener("click", async () => {
       th.textContent = header;
       resultsHeaderRow.appendChild(th);
     });
-  
+
     // Generate rows
     data.forEach((row) => {
       const tr = document.createElement("tr");
       tr.className = "border-b hover:bg-gray-50";
-  
+
       headers.forEach((header) => {
         const td = document.createElement("td");
         td.className = "py-3 px-4 text-sm text-gray-700";
         td.textContent = row[header];
         tr.appendChild(td);
       });
-  
+
       resultsBody.appendChild(tr);
     });
-  
+
     document.getElementById("query-results").classList.remove("hidden");
   };
-  
+
   document.getElementById("clear-query").addEventListener("click", () => {
     document.getElementById("run-query-input").value = "";
     document.getElementById("query-results").classList.add("hidden");
   });
-  
-  
 
   favoritesNav.addEventListener("click", async () => {
     const schemaId = schemaSelector.value;
     if (!schemaId) {
-      alert("Please select a schema in the generate query section to view favorites.");
+      alert(
+        "Please select a schema in the generate query section to view favorites."
+      );
       return;
     }
     resetSections();
@@ -462,25 +490,33 @@ generateQueryButton.addEventListener("click", async () => {
   });
   const fetchSubscriptionDetails = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/subscribers/details", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
-      });
-  
-      if (!response.ok) throw new Error("Failed to fetch subscription details.");
-  
+      const response = await fetch(
+        "http://localhost:3000/api/subscribers/details",
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+          },
+        }
+      );
+
+      if (!response.ok)
+        throw new Error("Failed to fetch subscription details.");
+
       const { plan, remainingQueries } = await response.json();
-  
+
       const subscriptionInfo = document.getElementById("subscription-info");
       const upgradeOptions = document.getElementById("upgrade-options");
-  
+
       if (plan === "Pro") {
-        subscriptionInfo.textContent = "You are on the Pro plan. Unlimited queries available.";
+        subscriptionInfo.textContent =
+          "You are on the Pro plan. Unlimited queries available.";
         upgradeOptions.classList.add("hidden");
       } else if (plan === "Trial") {
         subscriptionInfo.textContent = `You are on a trial plan. ${remainingQueries} query(ies) remaining.`;
         upgradeOptions.classList.remove("hidden");
       } else {
-        subscriptionInfo.textContent = "You do not have an active subscription.";
+        subscriptionInfo.textContent =
+          "You do not have an active subscription.";
         upgradeOptions.classList.remove("hidden");
       }
     } catch (error) {
@@ -488,20 +524,22 @@ generateQueryButton.addEventListener("click", async () => {
       alert("Error fetching subscription details. Please try again.");
     }
   };
-  
+
   settingsNav.addEventListener("click", async () => {
     resetSections();
     settingsSection.classList.remove("hidden");
     switchActiveTab(settingsNav);
-  
+
     fetchSubscriptionDetails(); // Fetch subscription details
-  
+
     try {
       showLoader();
       const response = await fetch("http://localhost:3000/api/auth/profile", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+        },
       });
-  
+
       if (response.ok) {
         const user = await response.json();
         document.getElementById("username").value = user.username;
@@ -519,36 +557,40 @@ generateQueryButton.addEventListener("click", async () => {
       alert("Error fetching profile. Please try again later.");
     }
   });
-  
 
   //TODO here: add stripe call, on success you can then call our upgrade end
-  document.getElementById("upgrade-button").addEventListener("click", async () => {
-    try {
-      const response = await fetch("http://localhost:3000/api/subscribers/upgrade", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
-        },
-      });
-  
-      if (response.ok) {
-        alert("Successfully upgraded to Pro!");
-        await updateQueryButtonState(); // Update button state after upgrade
-      } else {
-        alert("Failed to upgrade. Please try again.");
+  document
+    .getElementById("upgrade-button")
+    .addEventListener("click", async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/subscribers/upgrade",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          alert("Successfully upgraded to Pro!");
+          await updateQueryButtonState(); // Update button state after upgrade
+        } else {
+          alert("Failed to upgrade. Please try again.");
+        }
+      } catch (error) {
+        console.error("Upgrade error:", error);
+        alert("Error upgrading to Pro. Please contact support.");
       }
-    } catch (error) {
-      console.error("Upgrade error:", error);
-      alert("Error upgrading to Pro. Please contact support.");
-    }
-  });
-  
-  
-  document.getElementById("enterprise-contact-button").addEventListener("click", () => {
-    alert("Please contact sales@tori.com for enterprise solutions.");
-  });
-  
+    });
+
+  document
+    .getElementById("enterprise-contact-button")
+    .addEventListener("click", () => {
+      alert("Please contact sales@tori.com for enterprise solutions.");
+    });
 
   uploadTab.addEventListener("click", () => {
     uploadSchema.classList.remove("hidden");
@@ -588,9 +630,12 @@ generateQueryButton.addEventListener("click", async () => {
 
   const fetchQueryHistory = async (schemaId) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/history`, {
-        headers: { Authorization: token },
-      });
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/${schemaId}/history`,
+        {
+          headers: { Authorization: token },
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         populateQueryHistoryTable(data.history);
@@ -604,9 +649,12 @@ generateQueryButton.addEventListener("click", async () => {
 
   const fetchFavorites = async (schemaId) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/favorites`, {
-        headers: { Authorization: token },
-      });
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/${schemaId}/favorites`,
+        {
+          headers: { Authorization: token },
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         populateFavoritesTable(data.favorites);
@@ -621,38 +669,49 @@ generateQueryButton.addEventListener("click", async () => {
   const populateSchemaSelector = (schemas) => {
     schemaSelector.innerHTML =
       '<option value="" disabled selected>Select a Schema</option>';
+    const schemaUploadOptionsGroup = document.getElementById("schema-uploads");
     schemas.forEach((schema) => {
       const option = document.createElement("option");
       option.value = schema._id;
       option.textContent = schema.name;
       schemaSelector.appendChild(option);
+
+      // also add to the run queries (new) section
+      schemaUploadOptionsGroup.appendChild(option);
     });
   };
 
   // Add schema selection event listener here
   schemaSelector.addEventListener("change", async () => {
     const schemaId = schemaSelector.value;
-  
+
     if (!schemaId) {
       console.error("No schema selected.");
       return;
     }
-  
+
     try {
-      const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/metadata`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("tori_token")}` },
-      });
-  
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/${schemaId}/metadata`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+          },
+        }
+      );
+
       if (response.ok) {
         const { metadata } = await response.json();
-        const suggestions = metadata.map((item) => `${item.tableName}.${item.columnName}`);
-  
+        const suggestions = metadata.map(
+          (item) => `${item.tableName}.${item.columnName}`
+        );
+
         // Initialize autosuggest
         new Awesomplete(queryInput, {
           list: suggestions,
           minChars: 1,
         });
-  
+
         console.log("Autosuggestions loaded.");
       } else {
         console.error("Failed to fetch schema metadata.");
@@ -667,10 +726,6 @@ generateQueryButton.addEventListener("click", async () => {
       queryInput.style.resize = "vertical";
     }
   });
-  
-  
-  
-  
 
   const populateQueryHistoryTable = (history) => {
     queryHistoryTable.innerHTML = "";
@@ -679,12 +734,14 @@ generateQueryButton.addEventListener("click", async () => {
         '<tr><td colspan="4" class="text-center py-2">No query history available.</td></tr>';
       return;
     }
-  
+
     history.forEach((entry) => {
       const row = document.createElement("tr");
       row.className = "border-b hover:bg-gray-50"; // Add hover effect and row borders
       row.innerHTML = `
-        <td class="py-3 px-4 text-sm text-gray-700">${new Date(entry.createdAt).toLocaleString()}</td>
+        <td class="py-3 px-4 text-sm text-gray-700">${new Date(
+          entry.createdAt
+        ).toLocaleString()}</td>
         <td class="py-3 px-4 text-sm text-gray-700">${entry.prompt}</td>
         <td class="py-3 px-4 text-sm text-gray-700">${entry.generatedQuery}</td>
         <td class="py-3 px-4 text-sm text-gray-700 flex space-x-2">
@@ -693,17 +750,17 @@ generateQueryButton.addEventListener("click", async () => {
         </td>
       `;
       queryHistoryTable.appendChild(row);
-  
+
       // Attach event listeners
       const reRunButton = row.querySelector(".re-run-btn");
       const exportButton = row.querySelector(".export-btn");
-  
+
       reRunButton.addEventListener("click", () => reRunQuery(entry.prompt));
-      exportButton.addEventListener("click", () => exportQuery(entry.generatedQuery));
+      exportButton.addEventListener("click", () =>
+        exportQuery(entry.generatedQuery)
+      );
     });
   };
-  
-  
 
   const populateFavoritesTable = (favorites) => {
     favoritesTable.innerHTML = "";
@@ -712,7 +769,7 @@ generateQueryButton.addEventListener("click", async () => {
         '<tr><td colspan="3" class="text-center py-2">No favorite queries available.</td></tr>';
       return;
     }
-  
+
     favorites.forEach((favorite) => {
       const row = document.createElement("tr");
       row.className = "border-b hover:bg-gray-50"; // Add hover effect and row borders
@@ -725,61 +782,64 @@ generateQueryButton.addEventListener("click", async () => {
         </td>
       `;
       favoritesTable.appendChild(row);
-  
+
       // Attach event listeners
       const useButton = row.querySelector(".use-btn");
       const removeButton = row.querySelector(".remove-btn");
-  
-      useButton.addEventListener("click", () => useFavoriteQuery(favorite.query));
-      removeButton.addEventListener("click", () => removeFavorite(favorite._id));
+
+      useButton.addEventListener("click", () =>
+        useFavoriteQuery(favorite.query)
+      );
+      removeButton.addEventListener("click", () =>
+        removeFavorite(favorite._id)
+      );
     });
   };
-  
-  
 
   const renderColumns = () => {
     const columns = Array.from(columnsContainer.children);
     const totalItems = columns.length;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-  
+
     // Show or hide each column based on the current page
     columns.forEach((column, index) => {
-      column.style.display = index >= startIndex && index < endIndex ? "flex" : "none";
+      column.style.display =
+        index >= startIndex && index < endIndex ? "flex" : "none";
     });
-  
+
     // Determine if pagination is needed
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const prevPageBtn = document.getElementById("prev-page");
     const nextPageBtn = document.getElementById("next-page");
-  
+
     // Update button visibility and state
     prevPageBtn.style.display = totalPages > 1 ? "inline-block" : "none";
     nextPageBtn.style.display = totalPages > 1 ? "inline-block" : "none";
     prevPageBtn.disabled = currentPage === 1;
     nextPageBtn.disabled = currentPage === totalPages;
   };
-  
+
   const uploadSchemaFile = async () => {
     const file = schemaFileInput.files[0]; // Ensure schemaFileInput is defined
     const schemaName = schemaNameInput.value; // Ensure schemaNameInput is defined
-  
+
     if (!file || !schemaName) {
       alert("Please provide a schema name and file.");
       return;
     }
-  
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", schemaName);
-  
+
     try {
       const response = await fetch("http://localhost:3000/api/schemas/upload", {
         method: "POST",
         headers: { Authorization: token },
         body: formData,
       });
-  
+
       const result = await response.json();
       if (response.ok) {
         alert("Schema uploaded successfully.");
@@ -793,36 +853,38 @@ generateQueryButton.addEventListener("click", async () => {
       alert("Error uploading schema. Please try again later.");
     }
   };
-  
+
   const saveManualSchema = async () => {
     const schemaName = schemaNameInput.value.trim();
-    const columns = Array.from(columnsContainer.children).map((row) => {
-      const columnName = row.querySelector(".column-name");
-      const dataType = row.querySelector(".data-type");
-      const description = row.querySelector(".description");
-  
-      if (!columnName || !dataType) {
-        console.error("Missing required column inputs.");
-        return null; // Skip invalid rows
-      }
-  
-      return {
-        name: columnName.value.trim(),
-        dataType: dataType.value.trim(),
-        description: description ? description.value.trim() : "",
-      };
-    }).filter((column) => column !== null);
-  
+    const columns = Array.from(columnsContainer.children)
+      .map((row) => {
+        const columnName = row.querySelector(".column-name");
+        const dataType = row.querySelector(".data-type");
+        const description = row.querySelector(".description");
+
+        if (!columnName || !dataType) {
+          console.error("Missing required column inputs.");
+          return null; // Skip invalid rows
+        }
+
+        return {
+          name: columnName.value.trim(),
+          dataType: dataType.value.trim(),
+          description: description ? description.value.trim() : "",
+        };
+      })
+      .filter((column) => column !== null);
+
     if (!schemaName) {
       alert("Please provide a schema name.");
       return;
     }
-  
+
     if (columns.length === 0) {
       alert("Please define at least one column.");
       return;
     }
-  
+
     try {
       const response = await fetch("http://localhost:3000/api/schemas", {
         method: "POST",
@@ -832,7 +894,7 @@ generateQueryButton.addEventListener("click", async () => {
         },
         body: JSON.stringify({ name: schemaName, columns }),
       });
-  
+
       if (response.ok) {
         alert("Schema saved successfully.");
         columnsContainer.innerHTML = ""; // Clear form
@@ -846,8 +908,6 @@ generateQueryButton.addEventListener("click", async () => {
       alert("Error saving schema. Please try again later.");
     }
   };
-  
-  
 
   uploadButton.addEventListener("click", uploadSchemaFile);
   saveSchemaButton.addEventListener("click", saveManualSchema);
@@ -859,7 +919,6 @@ generateQueryButton.addEventListener("click", async () => {
     manualTab.classList.remove("text-primary", "border-primary");
   });
 
-
   const reRunQuery = (prompt) => {
     if (!prompt) {
       alert("No prompt available to re-run.");
@@ -868,53 +927,91 @@ generateQueryButton.addEventListener("click", async () => {
     queryInput.value = prompt; // Populate the input field
     aiQueryNav.click(); // Trigger the AI Query Generator section
   };
-  
-// Utility Functions
-const validateGeneratedQuery = async () => {
-  const schemaId = schemaSelector.value;
-  const query = generatedSqlText.textContent;
 
-  if (!query) {
-    alert("No query to validate. Generate one first.");
-    return;
-  }
+  /**
+   * Script to fetch database options and list them.
+   */
+  const databaseDropdownOptionsGroup = document.getElementById("db-conns"); // Ensure the dropdown has this ID
+  const companyId = user.company._id;
 
-  try {
-    const response = await fetch(`http://localhost:3000/api/schemas/${schemaId}/validate-query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
-      },
-      body: JSON.stringify({ query, dbConfig }),
-    });
+  const fetchDatabases = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/databases/${companyId}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch databases.");
+      }
 
-    const result = await response.json();
-    if (response.ok) {
-      alert("Query executed successfully. Check console for results.");
-      console.log("Query Results:", result.result);
-    } else {
-      alert(result.message || "Query validation failed.");
+      const databases = await response.json();
+
+      // Populate dropdown with database names
+      databases.forEach((db) => {
+        const option = document.createElement("option");
+        option.value = db._id; // Use database ID as the value
+        option.textContent = db.name; // Use database name as the label
+        databaseDropdownOptionsGroup.appendChild(option);
+      });
+    } catch (error) {
+      console.error("Error fetching databases:", error);
+      alert("Failed to load databases. Please try again later.");
     }
-  } catch (error) {
-    console.error("Error validating query:", error);
-    alert("Error validating query. Please try again later.");
-  }
-};
-document.getElementById("validate-query").addEventListener("click", validateGeneratedQuery);
+  };
+  fetchDatabases();
 
-const exportQuery = (queryText) => {
-  if (!queryText) {
-    alert("Cannot export an empty query.");
-    return;
-  }
-  const blob = new Blob([queryText], { type: "text/plain" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "query.sql";
-  link.click();
-};
+  fetchSchemasAndSetOptions();
+  //-- End script section --//
 
+  // Utility Functions
+  const validateGeneratedQuery = async () => {
+    const schemaId = schemaSelector.value;
+    const query = generatedSqlText.textContent;
+
+    if (!query) {
+      alert("No query to validate. Generate one first.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/schemas/${schemaId}/validate-query`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+          },
+          body: JSON.stringify({ query, dbConfig }),
+        }
+      );
+
+      const result = await response.json();
+      if (response.ok) {
+        alert("Query executed successfully. Check console for results.");
+        console.log("Query Results:", result.result);
+      } else {
+        alert(result.message || "Query validation failed.");
+      }
+    } catch (error) {
+      console.error("Error validating query:", error);
+      alert("Error validating query. Please try again later.");
+    }
+  };
+  document
+    .getElementById("validate-query")
+    .addEventListener("click", validateGeneratedQuery);
+
+  const exportQuery = (queryText) => {
+    if (!queryText) {
+      alert("Cannot export an empty query.");
+      return;
+    }
+    const blob = new Blob([queryText], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "query.sql";
+    link.click();
+  };
 
   addColumnButton.addEventListener("click", () => {
     const columnRow = document.createElement("div");
@@ -939,29 +1036,32 @@ const exportQuery = (queryText) => {
   // Profile Settings Handlers
   updateProfileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    showLoader()
-  
+    showLoader();
+
     const username = document.getElementById("username").value.trim();
     const companyName = document.getElementById("company-name").value.trim();
-  
+
     try {
-      const response = await fetch("http://localhost:3000/api/auth/update-profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
-        },
-        body: JSON.stringify({ username, companyName }),
-      });
-  
+      const response = await fetch(
+        "http://localhost:3000/api/auth/update-profile",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+          },
+          body: JSON.stringify({ username, companyName }),
+        }
+      );
+
       const result = await response.json();
-      hideLoader()
+      hideLoader();
       if (response.ok) {
-        hideLoader()
+        hideLoader();
         alert("Profile updated successfully.");
         localStorage.setItem("tori_user", JSON.stringify(result.user));
       } else {
-        hideLoader()
+        hideLoader();
         alert(
           result.message === "This username is already taken"
             ? "The username is already in use. Please choose a different one."
@@ -978,52 +1078,63 @@ const exportQuery = (queryText) => {
     e.preventDefault();
     const currentPassword = document.getElementById("current-password").value;
     const newPassword = document.getElementById("new-password").value;
-    showLoader()
+    showLoader();
     try {
-      const response = await fetch("http://localhost:3000/api/auth/change-password", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
-        },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
+      const response = await fetch(
+        "http://localhost:3000/api/auth/change-password",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        }
+      );
 
       const result = await response.json();
-      hideLoader()
+      hideLoader();
       if (response.ok) {
-        hideLoader()
+        hideLoader();
         alert("Password changed successfully.");
       } else {
-        hideLoader()
+        hideLoader();
         alert(result.message || "Failed to change password.");
       }
     } catch (error) {
-      hideLoader()
+      hideLoader();
       console.error("Error changing password:", error);
       alert("Error changing password.");
     }
   });
 
   deleteAccountButton.addEventListener("click", async () => {
-    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      )
+    )
+      return;
 
     try {
-      showLoader()
-      const response = await fetch("http://localhost:3000/api/auth/delete-account", {
-        method: "DELETE",
-        headers: {
-          Authorization: token,
-        },
-      });
+      showLoader();
+      const response = await fetch(
+        "http://localhost:3000/api/auth/delete-account",
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
 
       if (response.ok) {
-        hideLoader()
+        hideLoader();
         alert("Account deleted successfully.");
         localStorage.clear();
         window.location.href = "signup.html";
       } else {
-        hideLoader()
+        hideLoader();
         const result = await response.json();
         alert(result.message || "Failed to delete account.");
       }
@@ -1038,14 +1149,17 @@ const exportQuery = (queryText) => {
   document.addEventListener("click", async (e) => {
     if (e.target && e.target.id === "upgrade-button") {
       try {
-        const response = await fetch("http://localhost:3000/api/subscribers/upgrade", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
-          },
-        });
-  
+        const response = await fetch(
+          "http://localhost:3000/api/subscribers/upgrade",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("tori_token")}`,
+            },
+          }
+        );
+
         if (response.ok) {
           alert("Successfully upgraded to Pro!");
           await updateQueryButtonState(); // Update button state after upgrade
@@ -1058,5 +1172,4 @@ const exportQuery = (queryText) => {
       }
     }
   });
-  
 });
